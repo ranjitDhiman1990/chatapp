@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct OnboardingView: View {
-    @State var router = Router(root: AppRoute.OnboardingView)
+    @EnvironmentObject var router: Router
     
     var body: some View {
         ZStack {

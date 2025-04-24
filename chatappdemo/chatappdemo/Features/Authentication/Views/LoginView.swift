@@ -8,6 +8,9 @@
 import SwiftUI
 
 struct LoginView: View {
+    @EnvironmentObject var viewModel: AuthViewModel
+    @EnvironmentObject var router: Router
+    
     var body: some View {
         ZStack {
             // Background gradient
@@ -33,7 +36,9 @@ struct LoginView: View {
                     // Login options
                     VStack(spacing: 15) {
                         Button(action: {
-                            // Apple login
+                            Task {
+                                await viewModel.signInWithApple()
+                            }
                         }) {
                             HStack {
                                 Image(systemName: "applelogo")
@@ -48,7 +53,9 @@ struct LoginView: View {
                         }
                         
                         Button(action: {
-                            // Google login
+                            Task {
+                                await viewModel.signInWithGoogle()
+                            }
                         }) {
                             HStack {
                                 Image(systemName: "g.circle.fill")
@@ -63,7 +70,7 @@ struct LoginView: View {
                         }
                         
                         Button(action: {
-                            // Phone login
+                            self.router.push(.PhoneLoginView)
                         }) {
                             HStack {
                                 Image(systemName: "phone.fill")

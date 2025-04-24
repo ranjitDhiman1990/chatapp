@@ -73,11 +73,12 @@ public class AuthService: NSObject, AuthServiceProtocol {
             self.continuation = continuation
             
             let nonce = NonceGenerator.randomNonceString()
+            let hashedNonce = NonceGenerator.sha256(nonce)
             self.currentNonce = nonce
             let appleIDProvider = ASAuthorizationAppleIDProvider()
             let request = appleIDProvider.createRequest()
             request.requestedScopes = [.fullName, .email]
-            request.nonce = nonce
+            request.nonce = hashedNonce
             
             let authorizationController = ASAuthorizationController(authorizationRequests: [request])
             authorizationController.delegate = self

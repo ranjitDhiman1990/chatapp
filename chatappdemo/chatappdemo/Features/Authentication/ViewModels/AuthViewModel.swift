@@ -8,16 +8,32 @@
 import Foundation
 import AuthenticationServices
 
-final class AuthViewModel: ObservableObject {
+final class AuthViewModel: BaseViewModel {
     @Published private(set) var state: AuthState = .idle
     @Published var phoneNumber: String = ""
     @Published var verificationCode: String = ""
+    private(set) var showLoader: Bool = false
+    var otp = ""
+    var resendOtpCount: Int = 30
+    var countries: [Country]
+    var currentCountry: Country
     
     private let authService: AuthServiceProtocol
     
     init(authService: AuthServiceProtocol) {
         self.authService = authService
-        checkCurrentUser()
+        let allCountries = JSONReader.readJSONFromFile(fileName: "Countries", type: [Country].self) ?? []
+        var currentLocal = ""
+        if #available(iOS 16, *) {
+            currentLocal = Locale.current.region?.identifier ?? "IN"
+        } else {
+            currentLocal = Locale.current.identifier
+        }
+        self.countries = allCountries
+        self.currentCountry = allCountries.first(where: {$0.isoCode == currentLocal}) ?? (allCountries.first ?? Country(name: "India", dialCode: "+91", isoCode: "IN"))
+        
+        super.init()
+        self.checkCurrentUser()
     }
     
     func checkCurrentUser() {
@@ -28,6 +44,7 @@ final class AuthViewModel: ObservableObject {
         }
     }
     
+    @MainActor
     func verifyPhoneNumber() async {
         state = .loading
         do {
@@ -38,6 +55,7 @@ final class AuthViewModel: ObservableObject {
         }
     }
     
+    @MainActor
     func signInWithPhoneNumber(verificationId: String, code: String) async {
         state = .loading
         do {
@@ -48,6 +66,7 @@ final class AuthViewModel: ObservableObject {
         }
     }
     
+    @MainActor
     func signInWithGoogle() async {
         state = .loading
         do {
@@ -58,6 +77,7 @@ final class AuthViewModel: ObservableObject {
         }
     }
     
+    @MainActor
     func signInWithApple() async {
         state = .loading
         do {
@@ -68,6 +88,7 @@ final class AuthViewModel: ObservableObject {
         }
     }
     
+    @MainActor
     func handleAppleAuthorization(credential: ASAuthorizationAppleIDCredential) async {
         state = .loading
         do {
@@ -82,6 +103,7 @@ final class AuthViewModel: ObservableObject {
         do {
             try authService.signOut()
             state = .unauthenticated
+            reset()
         } catch {
             state = .error(error)
         }

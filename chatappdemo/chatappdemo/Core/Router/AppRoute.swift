@@ -5,10 +5,10 @@
 //  Created by Dhiman Ranjit on 24/04/25.
 //
 
-enum AppRoute: Hashable {
+enum AppRoute: Hashable, Identifiable {
     
     static func == (lhs: AppRoute, rhs: AppRoute) -> Bool {
-        return lhs.key == rhs.key
+        return lhs.id == rhs.id
     }
     
     case OnboardingView
@@ -20,7 +20,7 @@ enum AppRoute: Hashable {
     case CompleteProfileView
     case EditProfileView
     
-    var key: String {
+    var id: String {
         switch self {
         case .OnboardingView:
             "OnboardingView"

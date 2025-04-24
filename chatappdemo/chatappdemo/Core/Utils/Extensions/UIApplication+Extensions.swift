@@ -14,4 +14,8 @@ extension UIApplication {
             .flatMap { $0.windows }
             .first { $0.isKeyWindow }
     }
+    
+    func endEditing() {
+        sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+    }
 }

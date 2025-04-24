@@ -8,15 +8,15 @@
 import Foundation
 import FirebaseAuth
 
-struct AuthUser {
-    let uid: String
+struct AuthUser: Identifiable, Codable, Hashable {
+    let id: String
     let email: String?
     let phoneNumber: String?
     let displayName: String?
     let photoURL: URL?
     
     init(user: User) {
-        self.uid = user.uid
+        self.id = user.uid
         self.email = user.email
         self.phoneNumber = user.phoneNumber
         self.displayName = user.displayName
