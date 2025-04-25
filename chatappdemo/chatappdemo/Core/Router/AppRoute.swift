@@ -14,7 +14,7 @@ enum AppRoute: Hashable, Identifiable {
     case OnboardingView
     case LoginView
     case PhoneLoginView
-    case OTPView
+    case OTPView(phoneNumber: String, verificationID: String)
     case ChatListView
     case ChatView
     case CompleteProfileView

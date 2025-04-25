@@ -8,53 +8,138 @@
 import SwiftUI
 
 public struct OTPView: View {
+    @State var verificationCode: String
+    @State var phoneNumber: String
+    @State private var isLoading: Bool = false
     
-    @EnvironmentObject var viewModel: AuthViewModel
+    @EnvironmentObject var authViewModel: AuthViewModel
+    @StateObject private var viewModel: OTPViewModel = OTPViewModel()
+    @FocusState private var focusedField: Int?
+    
+    
+    init(phoneNumber: String, verificationID: String) {
+        self.phoneNumber = phoneNumber
+        self.verificationCode = verificationID
+    }
     
     public var body: some View {
-        VStack(spacing: 20) {
-            Text("Verification code")
-                .font(.title.bold())
-            
-            TextField("Verification Code", text: $viewModel.otp)
+        ZStack {
+            Color.white.edgesIgnoringSafeArea(.all)
+            VStack(spacing: 20) {
+                Text("Verification code")
+                    .font(.title.bold())
+                
+                HStack(spacing: 10) {
+                    ForEach(0..<6, id: \.self) { index in
+                        OTPTextField(
+                            digit: $viewModel.otp[index],
+                            isFocused: focusedField == index,
+                            onCommit: {
+                                if index < 5 {
+                                    focusedField = index + 1
+                                } else {
+                                    submitCode()
+                                }
+                            }
+                        )
+                        .focused($focusedField, equals: index)
+                        .frame(width: 40, height: 56)
+                    }
+                }
                 .padding(.horizontal)
-                .keyboardType(.numberPad)
-                .frame(height: 56)
-                .background(RoundedRectangle(cornerRadius: 16).strokeBorder(.disableText.opacity(0.4), lineWidth: 1))
-            
-            PrimaryButton(text: "Verify Code") {
-                Task {
-                    await viewModel.signInWithPhoneNumber(verificationId: viewModel.verificationCode, code: viewModel.otp)
+                
+                PrimaryButton(text: "Verify Code") {
+                    submitCode()
+                }
+                
+                if viewModel.resendOtpCount > 0 {
+                    Group {
+                        Text("Resend code ")
+                            .foregroundColor(.secondaryText)
+                        + Text("00:\(String(format: "%02d", viewModel.resendOtpCount))")
+                            .foregroundColor(.primaryText)
+                    }
+                } else {
+                    VStack(spacing: 0) {
+                        Button("Resend Code ?") {
+                            isLoading = true
+                            Task {
+                                defer {
+                                    isLoading = false
+                                }
+                                
+                                do {
+                                    try await authViewModel.verifyPhoneNumber(phoneNumber: phoneNumber)
+                                } catch {
+                                    debugPrint("verifyPhoneNumber error = \(error.localizedDescription)")
+                                }
+                            }
+                        }
+                        .font(.caption)
+                        .foregroundStyle(.primary)
+                        .padding(.top, -10)
+                        
+                        Divider()
+                            .frame(height: 1)
+                            .background(.appPrimary)
+                    }
+                    .fixedSize(horizontal: true, vertical: false)
                 }
             }
-            
-            if viewModel.resendOtpCount > 0 {
-                Group {
-                    Text("Resend code ")
-                        .foregroundColor(.secondaryText)
-                    + Text("00:\(String(format: "%02d", viewModel.resendOtpCount))")
-                        .foregroundColor(.primaryText)
-                }
-            } else {
-                VStack(spacing: 0) {
-                    Button("Resend Code ?") {
-                        Task {
-                            await viewModel.verifyPhoneNumber()
-                        }
-                    }
-                    .font(.caption)
-                    .foregroundStyle(.primary)
-                    .padding(.top, -10)
-                    
-                    Divider()
-                        .frame(height: 1)
-                        .background(.appPrimary)
-                }
-                .fixedSize(horizontal: true, vertical: false)
+            .padding(.top, -50)
+            .padding(.horizontal, 16)
+            .alertView.alert(isPresented: $viewModel.showAlert, alertStruct: viewModel.alert)
+            .onAppear {
+                focusedField = 0
             }
         }
-        .padding(.top, -50)
-        .padding(.horizontal, 16)
-        .alertView.alert(isPresented: $viewModel.showAlert, alertStruct: viewModel.alert)
+        .overlay(LoaderView(isLoading: isLoading))
+        .toolbar {
+            ToolbarItem(placement: .navigationBarLeading) {
+                NavbarBackButton()
+            }
+        }
+    }
+    
+    private func submitCode() {
+        let otpCode = viewModel.otp.map { String($0 ?? "") }.joined()
+        isLoading = true
+        Task {
+            defer {
+                isLoading = false
+            }
+            
+            do {
+                try await authViewModel.signInWithPhoneNumber(verificationId: verificationCode, code: otpCode)
+            } catch {
+                debugPrint("signInWithPhoneNumber login error = \(error.localizedDescription)")
+            }
+        }
+    }
+}
+
+struct OTPTextField: View {
+    @Binding var digit: String?
+    var isFocused: Bool
+    var onCommit: () -> Void
+    
+    var body: some View {
+        TextField("", text: Binding(
+            get: { self.digit ?? "" },
+            set: { self.digit = $0 }
+        ))
+        .frame(maxWidth: 50)
+        .keyboardType(.numberPad)
+        .multilineTextAlignment(.center)
+        .padding()
+        .background(RoundedRectangle(cornerRadius: 8).stroke(isFocused ? Color.appPrimary : Color.disableText.opacity(0.4), lineWidth: 1))
+        .onSubmit {
+            onCommit()
+        }
+        .onChange(of: digit) { newValue in
+            if newValue?.count == 1 {
+                onCommit()
+            }
+        }
     }
 }

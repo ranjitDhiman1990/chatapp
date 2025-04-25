@@ -11,6 +11,8 @@ struct LoginView: View {
     @EnvironmentObject var viewModel: AuthViewModel
     @EnvironmentObject var router: Router
     
+    @State private var isLoading: Bool = false
+    
     var body: some View {
         ZStack {
             // Background gradient
@@ -36,8 +38,17 @@ struct LoginView: View {
                     // Login options
                     VStack(spacing: 15) {
                         Button(action: {
+                            isLoading = true
                             Task {
-                                await viewModel.signInWithApple()
+                                defer {
+                                    isLoading = false
+                                }
+                                
+                                do {
+                                    try await viewModel.signInWithApple()
+                                } catch {
+                                    debugPrint("Apple login error = \(error.localizedDescription)")
+                                }
                             }
                         }) {
                             HStack {
@@ -53,8 +64,17 @@ struct LoginView: View {
                         }
                         
                         Button(action: {
+                            isLoading = true
                             Task {
-                                await viewModel.signInWithGoogle()
+                                defer {
+                                    isLoading = false
+                                }
+                                
+                                do {
+                                    try await viewModel.signInWithGoogle()
+                                } catch {
+                                    debugPrint("Google login error = \(error.localizedDescription)")
+                                }
                             }
                         }) {
                             HStack {
@@ -87,6 +107,12 @@ struct LoginView: View {
                     .padding(.horizontal, 40)
                 }
                 .padding(.bottom, 40)
+            }
+        }
+        .overlay(LoaderView(isLoading: isLoading))
+        .toolbar {
+            ToolbarItem(placement: .navigationBarLeading) {
+                NavbarBackButton()
             }
         }
     }

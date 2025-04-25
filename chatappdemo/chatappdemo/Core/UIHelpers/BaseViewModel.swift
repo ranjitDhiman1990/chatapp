@@ -9,11 +9,10 @@ import SwiftUI
 
 @MainActor
 open class BaseViewModel: ObservableObject {
-
+    private(set) var showLoader: Bool = false
+    
     @Published var networkMonitor = NetworkMonitor()
-
     @Published public var toast: ToastView?
-
     @Published public var alert: AlertPrompt = .init(message: "")
     @Published public var showAlert: Bool = false
 

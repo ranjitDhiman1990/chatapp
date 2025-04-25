@@ -8,40 +8,61 @@
 import SwiftUI
 
 public struct PhoneLoginView: View {
+    @EnvironmentObject var authViewModel: AuthViewModel
+    @StateObject private var viewModel: PhoneLoginViewModel = PhoneLoginViewModel()
     
-    @EnvironmentObject var viewModel: AuthViewModel
+    @State private var isLoading: Bool = false
     
     public var body: some View {
-        VStack(spacing: 30) {
-            Text("Login to start with app")
-                .font(.title.bold())
-            
-            PhoneLoginContentView(phoneNumber: $viewModel.phoneNumber, countries: $viewModel.countries,
-                                  selectedCountry: $viewModel.currentCountry, showLoader: viewModel.showLoader)
-            
-            PrimaryButton(text: "Send OTP") {
-                Task {
-                    await viewModel.verifyPhoneNumber()
+        ZStack {
+            Color.white.edgesIgnoringSafeArea(.all)
+            VStack(spacing: 30) {
+                Text("Login to start with app")
+                    .font(.title.bold())
+                
+                PhoneLoginContentView(phoneNumber: $viewModel.phoneNumber, countries: $viewModel.countries,
+                                      selectedCountry: $viewModel.currentCountry, isPhoneNumberValid: $viewModel.isPhoneNumberValid, showLoader: viewModel.showLoader)
+                
+                PrimaryButton(text: "Send OTP") {
+                    isLoading = true
+                    Task {
+                        defer {
+                            isLoading = false
+                        }
+                        
+                        do {
+                            try await authViewModel.verifyPhoneNumber(phoneNumber: "\(viewModel.currentCountry.dialCode)\(viewModel.phoneNumber)")
+                        } catch {
+                            debugPrint("verifyPhoneNumber error = \(error.localizedDescription)")
+                        }
+                    }
                 }
             }
+            .padding(.top, -50)
+            .padding(.horizontal, 16)
+            .alertView.alert(isPresented: $viewModel.showAlert, alertStruct: viewModel.alert)
         }
-        .padding(.top, -50)
-        .padding(.horizontal, 16)
-        .alertView.alert(isPresented: $viewModel.showAlert, alertStruct: viewModel.alert)
+        .overlay(LoaderView(isLoading: isLoading))
+        .toolbar {
+            ToolbarItem(placement: .navigationBarLeading) {
+                NavbarBackButton()
+            }
+        }
     }
 }
 
 private struct PhoneLoginContentView: View {
-
+    
     @Binding var phoneNumber: String
     @Binding var countries: [Country]
     @Binding var selectedCountry: Country
-
+    @Binding var isPhoneNumberValid: Bool
+    
     let showLoader: Bool
-
+    
     @State var showCountryPicker = false
     @FocusState var isFocused: Bool
-
+    
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: 0) {
@@ -58,17 +79,13 @@ private struct PhoneLoginContentView: View {
                 .onTapGesture {
                     showCountryPicker = true
                 }
-
+                
                 Divider()
                     .frame(height: 50)
                     .background(.divider)
                     .padding(.horizontal, 16)
-
+                
                 ZStack(alignment: .leading) {
-                    if phoneNumber.isEmpty {
-                        Text(" Enter mobile number")
-                            .foregroundStyle(.disableText)
-                    }
                     TextField("", text: $phoneNumber)
                         .textContentType(.telephoneNumber)
                         .keyboardType(.phonePad)
@@ -78,6 +95,11 @@ private struct PhoneLoginContentView: View {
                         .focused($isFocused)
                         .onAppear {
                             isFocused = true
+                        }
+                        .onChange(of: phoneNumber) { newValue in
+                            if newValue.count > 10 {
+                                phoneNumber = String(newValue.prefix(10))
+                            }
                         }
                 }
             }
@@ -90,6 +112,17 @@ private struct PhoneLoginContentView: View {
                 RoundedRectangle(cornerRadius: 12)
                     .stroke(.disableText.opacity(0.4), lineWidth: 1)
             )
+            
+            if phoneNumber.isEmpty {
+                Text(" Enter mobile number")
+                    .foregroundStyle(.disableText)
+            } else if !isPhoneNumberValid {
+                Text("Please enter a valid phone number")
+                    .font(.caption)
+                    .foregroundColor(.red)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 10)
+            }
         }
         .sheet(isPresented: $showCountryPicker) {
             PhoneLoginCountryPicker(countries: $countries, selectedCountry: $selectedCountry, isPresented: $showCountryPicker)
@@ -98,21 +131,21 @@ private struct PhoneLoginContentView: View {
 }
 
 private struct PhoneLoginCountryPicker: View {
-
+    
     @Binding var countries: [Country]
     @Binding var selectedCountry: Country
     @Binding var isPresented: Bool
-
+    
     @State private var searchCountry: String = ""
     @FocusState private var isFocused: Bool
-
+    
     private var filteredCountries: [Country] {
         countries.filter { country in
             searchCountry.isEmpty ? true : country.name.lowercased().contains(searchCountry.lowercased()) ||
             country.dialCode.lowercased().contains(searchCountry.lowercased())
         }
     }
-
+    
     var body: some View {
         VStack(spacing: 0) {
             Text("Countries")
@@ -123,7 +156,7 @@ private struct PhoneLoginCountryPicker: View {
                 .onTapGesture {
                     isFocused = false
                 }
-
+            
             SearchBar(text: $searchCountry, isFocused: $isFocused, placeholder: "Search")
                 .padding(.vertical, -7)
                 .padding(.horizontal, 3)
@@ -136,7 +169,7 @@ private struct PhoneLoginCountryPicker: View {
                     isFocused = true
                 }
                 .padding([.horizontal, .bottom], 16)
-
+            
             if filteredCountries.isEmpty {
                 CountryNotFoundView(searchCountry: searchCountry)
             } else {
@@ -153,17 +186,17 @@ private struct PhoneLoginCountryPicker: View {
 }
 
 private struct CountryNotFoundView: View {
-
+    
     let searchCountry: String
-
+    
     var body: some View {
         VStack(spacing: 0) {
             Spacer()
-
+            
             Text("No results found for \"\(searchCountry)\"!")
                 .foregroundStyle(.disableText)
                 .padding(.bottom, 60)
-
+            
             Spacer()
         }
         .onTapGesture {
@@ -173,10 +206,10 @@ private struct CountryNotFoundView: View {
 }
 
 private struct PhoneLoginCountryCell: View {
-
+    
     let country: Country
     let onCellSelect: () -> Void
-
+    
     var body: some View {
         Button(action: onCellSelect) {
             HStack(spacing: 0) {

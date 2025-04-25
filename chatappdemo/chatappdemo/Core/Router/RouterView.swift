@@ -25,7 +25,7 @@ class Router: ObservableObject {
     }
 
     func currentScreen() -> AppRoute {
-        return stack.last!
+        return stack.isEmpty ? .OnboardingView : stack.last!
     }
     
     func reset(to route: AppRoute) {

@@ -5,33 +5,16 @@
 //  Created by Dhiman Ranjit on 23/04/25.
 //
 
-import Foundation
+
 import AuthenticationServices
 
 final class AuthViewModel: BaseViewModel {
     @Published private(set) var state: AuthState = .idle
-    @Published var phoneNumber: String = ""
-    @Published var verificationCode: String = ""
-    private(set) var showLoader: Bool = false
-    var otp = ""
-    var resendOtpCount: Int = 30
-    var countries: [Country]
-    var currentCountry: Country
-    
+
     private let authService: AuthServiceProtocol
     
     init(authService: AuthServiceProtocol) {
         self.authService = authService
-        let allCountries = JSONReader.readJSONFromFile(fileName: "Countries", type: [Country].self) ?? []
-        var currentLocal = ""
-        if #available(iOS 16, *) {
-            currentLocal = Locale.current.region?.identifier ?? "IN"
-        } else {
-            currentLocal = Locale.current.identifier
-        }
-        self.countries = allCountries
-        self.currentCountry = allCountries.first(where: {$0.isoCode == currentLocal}) ?? (allCountries.first ?? Country(name: "India", dialCode: "+91", isoCode: "IN"))
-        
         super.init()
         self.checkCurrentUser()
     }
@@ -45,57 +28,52 @@ final class AuthViewModel: BaseViewModel {
     }
     
     @MainActor
-    func verifyPhoneNumber() async {
-        state = .loading
+    func verifyPhoneNumber(phoneNumber: String) async throws {
         do {
             let verificationId = try await authService.verifyPhoneNumber(phoneNumber: phoneNumber)
-            state = .needsPhoneVerification(verificationId: verificationId, phoneNumber: phoneNumber)
+            state = .needsPhoneVerification(phoneNumber: phoneNumber, verificationId: verificationId)
         } catch {
-            state = .error(error)
+            throw error
         }
     }
     
     @MainActor
-    func signInWithPhoneNumber(verificationId: String, code: String) async {
-        state = .loading
+    func signInWithPhoneNumber(verificationId: String, code: String) async throws {
         do {
             let user = try await authService.signInWithVerificationId(verificationId, code: code)
             state = .authenticated(user)
         } catch {
-            state = .error(error)
+            throw error
         }
     }
     
     @MainActor
-    func signInWithGoogle() async {
-        state = .loading
+    func signInWithGoogle() async throws {
         do {
             let user = try await authService.signInWithGoogle()
             state = .authenticated(user)
         } catch {
-            state = .error(error)
+           throw error
         }
     }
     
     @MainActor
-    func signInWithApple() async {
-        state = .loading
+    func signInWithApple() async throws {
         do {
             let user = try await authService.signInWithApple()
             state = .authenticated(user)
         } catch {
-            state = .error(error)
+            throw error
         }
     }
     
     @MainActor
-    func handleAppleAuthorization(credential: ASAuthorizationAppleIDCredential) async {
-        state = .loading
+    func handleAppleAuthorization(credential: ASAuthorizationAppleIDCredential) async throws {
         do {
             let user = try await authService.handleAuthorization(credential: credential)
             state = .authenticated(user)
         } catch {
-            state = .error(error)
+            throw error
         }
     }
     
@@ -103,7 +81,6 @@ final class AuthViewModel: BaseViewModel {
         do {
             try authService.signOut()
             state = .unauthenticated
-            reset()
         } catch {
             state = .error(error)
         }
@@ -111,7 +88,5 @@ final class AuthViewModel: BaseViewModel {
     
     func reset() {
         state = .idle
-        phoneNumber = ""
-        verificationCode = ""
     }
 }

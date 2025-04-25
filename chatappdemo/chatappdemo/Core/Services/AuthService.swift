@@ -49,11 +49,29 @@ public class AuthService: NSObject, AuthServiceProtocol {
         let config = GIDConfiguration(clientID: clientId)
         GIDSignIn.sharedInstance.configuration = config
         
-        guard let windowScene = await UIApplication.shared.connectedScenes.first as? UIWindowScene, let window = await windowScene.windows.first, let rootViewController = await window.rootViewController else {
+        let rootViewController = try await getRootViewController()
+        
+        let result = try await performGoogleSignIn(with: rootViewController)
+        
+        return try await handleAuthentication(result: result)
+    }
+    
+    @MainActor
+    private func getRootViewController() throws -> UIViewController {
+        guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+              let window = windowScene.windows.first,
+              let rootViewController = window.rootViewController else {
             throw AuthError.noRootViewController
         }
-        
-        let result = try await GIDSignIn.sharedInstance.signIn(withPresenting: rootViewController)
+        return rootViewController
+    }
+    
+    @MainActor
+    private func performGoogleSignIn(with viewController: UIViewController) async throws -> GIDSignInResult {
+        try await GIDSignIn.sharedInstance.signIn(withPresenting: viewController)
+    }
+    
+    private func handleAuthentication(result: GIDSignInResult) async throws -> AuthUser {
         let user = result.user
         guard let idToken = user.idToken?.tokenString else {
             throw AuthError.noToken
@@ -64,8 +82,8 @@ public class AuthService: NSObject, AuthServiceProtocol {
             accessToken: user.accessToken.tokenString
         )
         
-        let authResult = try await Auth.auth().signIn(with: credential)
-        return AuthUser(user: authResult.user)
+        let result = try await Auth.auth().signIn(with: credential)
+        return AuthUser(user: result.user)
     }
     
     func signInWithApple() async throws -> AuthUser {
