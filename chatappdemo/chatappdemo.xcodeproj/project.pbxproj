@@ -17,6 +17,7 @@
 		1E81F5982DB96FFD008ED9B3 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 1E81F5972DB96FFD008ED9B3 /* FirebaseFirestore */; };
 		1E81F59A2DB96FFD008ED9B3 /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = 1E81F5992DB96FFD008ED9B3 /* FirebaseMessaging */; };
 		1E81F59C2DB96FFD008ED9B3 /* FirebaseStorage in Frameworks */ = {isa = PBXBuildFile; productRef = 1E81F59B2DB96FFD008ED9B3 /* FirebaseStorage */; };
+		1E8DEA092DBCA12200B7E739 /* Cloudinary in Frameworks */ = {isa = PBXBuildFile; productRef = 1E8DEA082DBCA12200B7E739 /* Cloudinary */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -84,6 +85,7 @@
 				1E81F59C2DB96FFD008ED9B3 /* FirebaseStorage in Frameworks */,
 				1E81F58E2DB96FFD008ED9B3 /* FirebaseAnalytics in Frameworks */,
 				1E81F5902DB96FFD008ED9B3 /* FirebaseAuth in Frameworks */,
+				1E8DEA092DBCA12200B7E739 /* Cloudinary in Frameworks */,
 				1E81F5942DB96FFD008ED9B3 /* FirebaseCrashlytics in Frameworks */,
 				1E81F5922DB96FFD008ED9B3 /* FirebaseCore in Frameworks */,
 				1E81F4A42DB96059008ED9B3 /* GoogleSignIn in Frameworks */,
@@ -158,6 +160,7 @@
 				1E81F5992DB96FFD008ED9B3 /* FirebaseMessaging */,
 				1E81F59B2DB96FFD008ED9B3 /* FirebaseStorage */,
 				1E5F02F52DBA987E0062BAD8 /* Swinject */,
+				1E8DEA082DBCA12200B7E739 /* Cloudinary */,
 			);
 			productName = chatappdemo;
 			productReference = 1E81F4752DB9600A008ED9B3 /* chatappdemo.app */;
@@ -245,6 +248,7 @@
 				1E81F4A22DB96059008ED9B3 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */,
 				1E81F58C2DB96FFD008ED9B3 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
 				1E5F02F42DBA987E0062BAD8 /* XCRemoteSwiftPackageReference "Swinject" */,
+				1E8DEA072DBCA12200B7E739 /* XCRemoteSwiftPackageReference "cloudinary_ios" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 1E81F4762DB9600A008ED9B3 /* Products */;
@@ -645,6 +649,14 @@
 				minimumVersion = 11.12.0;
 			};
 		};
+		1E8DEA072DBCA12200B7E739 /* XCRemoteSwiftPackageReference "cloudinary_ios" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/cloudinary/cloudinary_ios.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 5.1.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -697,6 +709,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 1E81F58C2DB96FFD008ED9B3 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
 			productName = FirebaseStorage;
+		};
+		1E8DEA082DBCA12200B7E739 /* Cloudinary */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 1E8DEA072DBCA12200B7E739 /* XCRemoteSwiftPackageReference "cloudinary_ios" */;
+			productName = Cloudinary;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

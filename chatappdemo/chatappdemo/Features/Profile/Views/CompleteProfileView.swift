@@ -9,6 +9,7 @@ import SwiftUI
 
 struct CompleteProfileView: View {
     @StateObject private var viewModel = ProfileViewModel()
+    @StateObject private var imageUploadViewModel = ImageUploadViewModel()
     @State private var showImageSourceSheet = false
     @State private var showImagePicker = false
     @State private var showPhotoPicker = false
@@ -32,10 +33,22 @@ struct CompleteProfileView: View {
             viewModel.populateFromAuth()
         }
         .sheet(isPresented: $showImagePicker) {
-            ImagePickerView(image: $viewModel.profileImage)
+            ImagePickerView(image: $viewModel.profileImage, onImageSelected: { image in
+                Task {
+                    if let image {
+                        try await imageUploadViewModel.uploadImage(image)
+                    }
+                }
+            })
         }
         .sheet(isPresented: $showPhotoPicker) {
-            PhotoPickerView(image: $viewModel.profileImage)
+            PhotoPickerView(image: $viewModel.profileImage, onImageSelected: { image in
+                Task {
+                    if let image {
+                        try await imageUploadViewModel.uploadImage(image)
+                    }
+                }
+            })
         }
         .actionSheet(isPresented: $showImageSourceSheet) {
             ActionSheet(
@@ -70,11 +83,16 @@ struct CompleteProfileView: View {
                         .foregroundColor(.gray)
                 }
                 
-                HStack(spacing: 20) {
-                    Button {
-                        showImagePicker = true
-                    } label: {
-                        Text("Choose Photo")
+                if imageUploadViewModel.uploadProgress > 0, imageUploadViewModel.uploadProgress < 1 {
+                    ProgressView(value: imageUploadViewModel.uploadProgress, total: 1.0)
+                        .padding()
+                } else {
+                    HStack(spacing: 20) {
+                        Button {
+                            showImagePicker = true
+                        } label: {
+                            Text("Choose Photo")
+                        }
                     }
                 }
                 

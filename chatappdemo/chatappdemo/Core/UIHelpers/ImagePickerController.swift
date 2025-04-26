@@ -8,10 +8,10 @@
 import PhotosUI
 import SwiftUI
 
-
 // ImagePicker for Camera
 struct ImagePickerView: UIViewControllerRepresentable {
     @Binding var image: UIImage?
+    var onImageSelected: (UIImage?) -> Void
     @Environment(\.presentationMode) var presentationMode
     
     func makeUIViewController(context: Context) -> UIImagePickerController {
@@ -37,6 +37,7 @@ struct ImagePickerView: UIViewControllerRepresentable {
         func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
             if let image = info[.editedImage] as? UIImage ?? info[.originalImage] as? UIImage {
                 parent.image = image
+                self.parent.onImageSelected(image)
             }
             parent.presentationMode.wrappedValue.dismiss()
         }
@@ -47,6 +48,7 @@ struct ImagePickerView: UIViewControllerRepresentable {
 // PhotoPickerView for Selecting photo from Gallery
 struct PhotoPickerView: UIViewControllerRepresentable {
     @Binding var image: UIImage?
+    var onImageSelected: (UIImage?) -> Void
     @Environment(\.presentationMode) var presentationMode
     
     func makeUIViewController(context: Context) -> PHPickerViewController {
@@ -81,6 +83,7 @@ struct PhotoPickerView: UIViewControllerRepresentable {
                     DispatchQueue.main.async {
                         if let image = image as? UIImage {
                             self?.parent.image = image
+                            self?.parent.onImageSelected(image)
                         } else if let error = error {
                             print("Error loading image: \(error.localizedDescription)")
                         }
