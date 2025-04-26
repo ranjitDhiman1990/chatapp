@@ -150,6 +150,16 @@ final class AuthViewModel: BaseViewModel {
         }
     }
     
+    func updateUserInFireStoreDB(user: AuthUser) async throws {
+        do {
+            try await UserService.shared.update(user)
+            state = .authenticated(user)
+            try UserDefaultsManager.shared.saveAuthUser(user)
+        } catch {
+            throw error
+        }
+    }
+    
     func signOut() {
         do {
             try authService.signOut()

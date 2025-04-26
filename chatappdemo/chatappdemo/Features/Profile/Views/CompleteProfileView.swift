@@ -39,18 +39,34 @@ struct CompleteProfileView: View {
         }
         .sheet(isPresented: $showImagePicker) {
             ImagePickerView(image: $viewModel.profileImage, onImageSelected: { image in
+                isLoading = true
                 Task {
-                    if let image {
-                        try await imageUploadViewModel.uploadImage(image)
+                    defer {
+                        isLoading = false
+                    }
+                    do {
+                        if let image {
+                            try await imageUploadViewModel.uploadImage(image)
+                        }
+                    } catch {
+                        debugPrint("Image upload error = \(error.localizedDescription)")
                     }
                 }
             })
         }
         .sheet(isPresented: $showPhotoPicker) {
             PhotoPickerView(image: $viewModel.profileImage, onImageSelected: { image in
+                isLoading = true
                 Task {
-                    if let image {
-                        try await imageUploadViewModel.uploadImage(image)
+                    defer {
+                        isLoading = false
+                    }
+                    do {
+                        if let image {
+                            try await imageUploadViewModel.uploadImage(image)
+                        }
+                    } catch {
+                        debugPrint("Image upload error = \(error.localizedDescription)")
                     }
                 }
             })
@@ -69,6 +85,7 @@ struct CompleteProfileView: View {
                 ]
             )
         }
+        .overlay(LoaderView(isLoading: isLoading))
     }
     
     private var profileImageView: some View {
@@ -149,16 +166,17 @@ struct CompleteProfileView: View {
     
     private var submitButtonView: some View {
         Section {
-            PrimaryButton(text: "Submit") {
+            PrimaryButton(text: "Complete Profile") {
+                isLoading = true
                 Task {
                     defer {
                         isLoading = false
                     }
                     
                     do {
-                        try await viewModel.submitProfile(imageUrl: imageUploadViewModel.imageUrl)
+                        try await viewModel.createProfile(imageUrl: imageUploadViewModel.imageUrl)
                     } catch {
-                        debugPrint("signInWithPhoneNumber login error = \(error.localizedDescription)")
+                        debugPrint("Complete Profile error = \(error.localizedDescription)")
                     }
                 }
             }

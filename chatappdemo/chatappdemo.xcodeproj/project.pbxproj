@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		1E17E1C72DBD247C00CECA17 /* CachedAsyncImage in Frameworks */ = {isa = PBXBuildFile; productRef = 1E17E1C62DBD247C00CECA17 /* CachedAsyncImage */; };
 		1E5F02F62DBA987E0062BAD8 /* Swinject in Frameworks */ = {isa = PBXBuildFile; productRef = 1E5F02F52DBA987E0062BAD8 /* Swinject */; };
 		1E81F4A42DB96059008ED9B3 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = 1E81F4A32DB96059008ED9B3 /* GoogleSignIn */; };
 		1E81F58E2DB96FFD008ED9B3 /* FirebaseAnalytics in Frameworks */ = {isa = PBXBuildFile; productRef = 1E81F58D2DB96FFD008ED9B3 /* FirebaseAnalytics */; };
@@ -88,6 +89,7 @@
 				1E8DEA092DBCA12200B7E739 /* Cloudinary in Frameworks */,
 				1E81F5942DB96FFD008ED9B3 /* FirebaseCrashlytics in Frameworks */,
 				1E81F5922DB96FFD008ED9B3 /* FirebaseCore in Frameworks */,
+				1E17E1C72DBD247C00CECA17 /* CachedAsyncImage in Frameworks */,
 				1E81F4A42DB96059008ED9B3 /* GoogleSignIn in Frameworks */,
 				1E81F5982DB96FFD008ED9B3 /* FirebaseFirestore in Frameworks */,
 			);
@@ -161,6 +163,7 @@
 				1E81F59B2DB96FFD008ED9B3 /* FirebaseStorage */,
 				1E5F02F52DBA987E0062BAD8 /* Swinject */,
 				1E8DEA082DBCA12200B7E739 /* Cloudinary */,
+				1E17E1C62DBD247C00CECA17 /* CachedAsyncImage */,
 			);
 			productName = chatappdemo;
 			productReference = 1E81F4752DB9600A008ED9B3 /* chatappdemo.app */;
@@ -249,6 +252,7 @@
 				1E81F58C2DB96FFD008ED9B3 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
 				1E5F02F42DBA987E0062BAD8 /* XCRemoteSwiftPackageReference "Swinject" */,
 				1E8DEA072DBCA12200B7E739 /* XCRemoteSwiftPackageReference "cloudinary_ios" */,
+				1E17E1C52DBD247C00CECA17 /* XCRemoteSwiftPackageReference "swiftui-cached-async-image" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 1E81F4762DB9600A008ED9B3 /* Products */;
@@ -643,6 +647,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		1E17E1C52DBD247C00CECA17 /* XCRemoteSwiftPackageReference "swiftui-cached-async-image" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/lorenzofiamingo/swiftui-cached-async-image";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.1.1;
+			};
+		};
 		1E5F02F42DBA987E0062BAD8 /* XCRemoteSwiftPackageReference "Swinject" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/Swinject/Swinject.git";
@@ -678,6 +690,11 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		1E17E1C62DBD247C00CECA17 /* CachedAsyncImage */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 1E17E1C52DBD247C00CECA17 /* XCRemoteSwiftPackageReference "swiftui-cached-async-image" */;
+			productName = CachedAsyncImage;
+		};
 		1E5F02F52DBA987E0062BAD8 /* Swinject */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 1E5F02F42DBA987E0062BAD8 /* XCRemoteSwiftPackageReference "Swinject" */;

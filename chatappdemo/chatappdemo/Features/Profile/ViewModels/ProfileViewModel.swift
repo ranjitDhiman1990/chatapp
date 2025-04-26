@@ -25,6 +25,7 @@ class ProfileViewModel: ObservableObject {
     @Published var profileImage: UIImage?
     @Published var errorImage: String?
     
+    var initialUserData: AuthUser?
     var authMobileNumber: String? = nil
     var authEmail: String? = nil
     
@@ -52,11 +53,11 @@ class ProfileViewModel: ObservableObject {
     @MainActor
     func setup(authViewModel: AuthViewModel) {
         self.authViewModel = authViewModel
-        let currentUser = authViewModel.getCurrentUser()
-        populateFromAuth(phNo: currentUser?.phoneNumber, mail: currentUser?.email)
+        self.initialUserData = authViewModel.getCurrentUser()
+        populateFromAuth(phNo: self.initialUserData?.phoneNumber, mail: self.initialUserData?.email)
     }
     
-    func populateFromAuth(phNo: String?, mail: String?) {
+    private func populateFromAuth(phNo: String?, mail: String?) {
         if let phNo = phNo {
             mobileNumber = phNo
             authMobileNumber = phNo
@@ -67,13 +68,32 @@ class ProfileViewModel: ObservableObject {
         }
     }
     
+    var hasChanges: Bool {
+            guard let original = self.initialUserData else { return false }
+        return displayName != original.displayName
+        }
+    
     @MainActor
-    func submitProfile(imageUrl: String?) async throws {
+    func createProfile(imageUrl: String?) async throws {
         if isValidName {
-            let user = authViewModel?.getCurrentUser()
-            guard let currentUser = user?.copyWith(email: email, phoneNumber: mobileNumber, displayName: displayName, photoURL: URL(string: imageUrl ?? "")) else { return }
+            guard let currentUser = self.initialUserData?.copyWith(email: email, phoneNumber: mobileNumber, displayName: displayName, photoURL: URL(string: imageUrl ?? self.initialUserData?.photoURL?.absoluteString ?? "")) else { return }
             do {
                 try await authViewModel?.createUserInFireStoreDB(user: currentUser)
+            } catch {
+                debugPrint("UpdateProfileError: \(error)")
+                throw error
+            }
+        } else {
+            throw ValidationError.userNameEmpty
+        }
+    }
+    
+    @MainActor
+    func updateProfile(imageUrl: String?) async throws {
+        if isValidName {
+            guard let currentUser = self.initialUserData?.copyWith(email: email, phoneNumber: mobileNumber, displayName: displayName, photoURL: URL(string: imageUrl ?? self.initialUserData?.photoURL?.absoluteString ?? "")) else { return }
+            do {
+                try await authViewModel?.updateUserInFireStoreDB(user: currentUser)
             } catch {
                 debugPrint("UpdateProfileError: \(error)")
                 throw error
