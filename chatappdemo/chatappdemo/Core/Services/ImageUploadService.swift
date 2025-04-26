@@ -36,10 +36,12 @@ public class ImageUploadService: ImageUploadServiceProtocol {
         }
         
         return try await withCheckedThrowingContinuation { continuation in
-            cloudinary.createUploader().upload(
+            let params = CLDUploadRequestParams()
+                .setFolder("user_uploads")
+                .setTransformation(CLDTransformation().setWidth(800))
+            cloudinary.createUploader().signedUpload(
                 data: data,
-                uploadPreset: AppSecrets.cloudinaryUploadPreset,
-                params: CLDUploadRequestParams(), completionHandler:  { result, error in
+                params: params, completionHandler:  { result, error in
                     if let error = error {
                         continuation.resume(throwing: error)
                     } else if let url = result?.url {
@@ -61,22 +63,20 @@ public class ImageUploadService: ImageUploadServiceProtocol {
         }
         
         return try await withCheckedThrowingContinuation { continuation in
-            cloudinary.createUploader().upload(
+            let params = CLDUploadRequestParams()
+                .setFolder("user_uploads")
+                .setTransformation(CLDTransformation().setWidth(800))
+            cloudinary.createUploader().signedUpload(
                 data: data,
-                uploadPreset: AppSecrets.cloudinaryUploadPreset,
-                params: CLDUploadRequestParams(),
-                progress: { progress in
-                    progressHandler?(progress.fractionCompleted)
-                }
-            ) { result, error in
-                if let error = error {
-                    continuation.resume(throwing: error)
-                } else if let url = result?.url {
-                    continuation.resume(returning: url)
-                } else {
-                    continuation.resume(throwing: ImageUploadError.unknown)
-                }
-            }
+                params: params, completionHandler:  { result, error in
+                    if let error = error {
+                        continuation.resume(throwing: error)
+                    } else if let url = result?.url {
+                        continuation.resume(returning: url)
+                    } else {
+                        continuation.resume(throwing: ImageUploadError.unknown)
+                    }
+                })
         }
     }
 }
