@@ -25,4 +25,11 @@ class UserService: FirestoreService<AuthUser> {
             try? $0.data(as: AuthUser.self)
         }
     }
+    
+    func fetchAllUsers() async throws -> [AuthUser] {
+        let snapshot = try await db.collection(collectionName).getDocuments()
+        return try snapshot.documents.compactMap { doc in
+            try doc.data(as: AuthUser.self)
+        }
+    }
 }
