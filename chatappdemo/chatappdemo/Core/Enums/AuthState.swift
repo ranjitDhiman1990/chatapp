@@ -14,6 +14,7 @@ enum AuthState: Equatable {
     case authenticated(AuthUser)
     case unauthenticated
     case needsPhoneVerification(phoneNumber: String, verificationId: String)
+    case incompleteProfile(AuthUser)
     case error(Error)
     
     var id: String {
@@ -26,6 +27,8 @@ enum AuthState: Equatable {
             "unauthenticated"
         case .needsPhoneVerification(phoneNumber: _, verificationId: _):
             "needsPhoneVerification"
+        case .incompleteProfile(_):
+            "incompleteProfile"
         case .error(_):
             "error"
         }

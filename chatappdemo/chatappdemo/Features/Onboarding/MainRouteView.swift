@@ -57,6 +57,8 @@ struct MainRouteView: View {
         switch screen {
         case .LoginView:
             LoginView().environmentObject(authViewModel)
+        case .CompleteProfileView:
+            CompleteProfileView().environmentObject(authViewModel)
         case .PhoneLoginView:
             PhoneLoginView().environmentObject(authViewModel)
         case .OTPView(let phoneNumber, let verificationID):
@@ -73,6 +75,8 @@ struct MainRouteView: View {
         switch newState {
         case .authenticated:
             router.reset(to: .ChatListView)
+        case .incompleteProfile:
+            router.reset(to: .CompleteProfileView)
         case .unauthenticated:
             router.reset(to: .LoginView)
         case .needsPhoneVerification(let phoneNumber, let verificationID):

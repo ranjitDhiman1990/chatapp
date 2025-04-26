@@ -9,6 +9,8 @@ import SwiftUI
 import PhotosUI
 
 class ProfileViewModel: ObservableObject {
+    var authViewModel: AuthViewModel?
+    
     @Published var displayName: String = "" {
         didSet {
             validateDisplayName()
@@ -32,10 +34,10 @@ class ProfileViewModel: ObservableObject {
             errorName = nil
         } else if displayName.count < 3 {
             isValidName = false
-            errorName = "Display name must be at least 3 characters"
+            errorName = ValidationError.userNameTooShort.localizedDescription
         } else if displayName.count > 40 {
             isValidName = false
-            errorName = "Display name must be less than 40 characters"
+            errorName = ValidationError.userNameTooLong.localizedDescription
         } else {
             isValidName = true
             errorName = nil
@@ -47,24 +49,37 @@ class ProfileViewModel: ObservableObject {
         errorImage = nil
     }
     
-    func populateFromAuth() {
-        if let authMobileNumber = authMobileNumber {
-            mobileNumber = authMobileNumber
+    @MainActor
+    func setup(authViewModel: AuthViewModel) {
+        self.authViewModel = authViewModel
+        let currentUser = authViewModel.getCurrentUser()
+        populateFromAuth(phNo: currentUser?.phoneNumber, mail: currentUser?.email)
+    }
+    
+    func populateFromAuth(phNo: String?, mail: String?) {
+        if let phNo = phNo {
+            mobileNumber = phNo
+            authMobileNumber = phNo
         }
-        if let authEmail = authEmail {
-            email = authEmail
+        if let mail = mail {
+            email = mail
+            authEmail = mail
         }
     }
     
-    func submitProfile() {
-        // Handle profile submission here
-        debugPrint("Submitting profile with:")
-        debugPrint("Display Name: \(displayName)")
-        debugPrint("Mobile: \(mobileNumber)")
-        debugPrint("Email: \(email)")
-        if let profileImage = profileImage {
-            debugPrint("Profile image available (size: \(profileImage.size))")
-            // You would typically upload this image to your server
+    @MainActor
+    func submitProfile(imageUrl: String?) async throws {
+        if isValidName {
+            let user = authViewModel?.getCurrentUser()
+            guard let currentUser = user?.copyWith(email: email, phoneNumber: mobileNumber, displayName: displayName, photoURL: URL(string: imageUrl ?? "")) else { return }
+            do {
+                try await authViewModel?.createUserInFireStoreDB(user: currentUser)
+            } catch {
+                debugPrint("UpdateProfileError: \(error)")
+                throw error
+            }
+        } else {
+            throw ValidationError.userNameEmpty
         }
     }
 }

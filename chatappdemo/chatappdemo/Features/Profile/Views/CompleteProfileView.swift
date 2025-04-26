@@ -8,8 +8,13 @@
 import SwiftUI
 
 struct CompleteProfileView: View {
+    @EnvironmentObject var router: Router
+    @EnvironmentObject var authViewModel: AuthViewModel
+    
     @StateObject private var viewModel = ProfileViewModel()
     @StateObject private var imageUploadViewModel = ImageUploadViewModel()
+    
+    @State private var isLoading: Bool = false
     @State private var showImageSourceSheet = false
     @State private var showImagePicker = false
     @State private var showPhotoPicker = false
@@ -30,7 +35,7 @@ struct CompleteProfileView: View {
         }
         .navigationTitle("Complete Profile")
         .onAppear {
-            viewModel.populateFromAuth()
+            viewModel.setup(authViewModel: authViewModel)
         }
         .sheet(isPresented: $showImagePicker) {
             ImagePickerView(image: $viewModel.profileImage, onImageSelected: { image in
@@ -144,12 +149,17 @@ struct CompleteProfileView: View {
     
     private var submitButtonView: some View {
         Section {
-            Button(action: viewModel.submitProfile) {
-                HStack {
-                    Spacer()
-                    Text("Submit")
-                        .fontWeight(.semibold)
-                    Spacer()
+            PrimaryButton(text: "Submit") {
+                Task {
+                    defer {
+                        isLoading = false
+                    }
+                    
+                    do {
+                        try await viewModel.submitProfile(imageUrl: imageUploadViewModel.imageUrl)
+                    } catch {
+                        debugPrint("signInWithPhoneNumber login error = \(error.localizedDescription)")
+                    }
                 }
             }
             .disabled(!viewModel.isValidName)
