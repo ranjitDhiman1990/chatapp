@@ -12,7 +12,7 @@ protocol ChatServiceProtocol {
         between currentUser: AuthUser,
         and otherUser: AuthUser,
         initialMessage: String
-    ) async throws -> String
+    ) async throws -> (Conversation, UserConversation, Message)
     
     func updateExistingConversation(
         conversationId: String,
@@ -26,6 +26,12 @@ protocol ChatServiceProtocol {
     func markConversationRead(
         conversationId: String,
         for userId: String
+    ) async throws
+    
+    func markMessagesAsRead(
+        messageIds: [String],
+        conversationId: String,
+        userId: String
     ) async throws
     
     func deleteConversation(
@@ -55,7 +61,19 @@ protocol ChatServiceProtocol {
     func findExistingConversation(
         between currentUserId: String,
         and otherUserId: String
-    ) async throws -> String?
+    ) async throws -> UserConversation?
+    
+    func trackMessageDeliveryInRealTime(
+        messageId: String,
+        conversationId: String,
+        recipientId: String
+    )
+    
+    func updateMessageStatusToDelivered(
+        messageId: String,
+        conversationId: String,
+        recipientId: String
+    ) async throws
 }
 
 
@@ -64,8 +82,11 @@ class ChatService: ChatServiceProtocol {
     let userConversationCollectionName = "userConversations"
     let conversationsCollectionName = "conversations"
     let messagesCollectionName = "messages"
+    let usersCollectionName = "Users"
     
-    func createNewConversation(between currentUser: AuthUser, and otherUser: AuthUser, initialMessage: String) async throws -> String {
+    private var deliveryHandlers: [String: ListenerRegistration] = [:]
+    
+    func createNewConversation(between currentUser: AuthUser, and otherUser: AuthUser, initialMessage: String) async throws -> (Conversation, UserConversation, Message) {
         let conversationId = UUID().uuidString
         let timeStamp = Date()
         
@@ -98,7 +119,7 @@ class ChatService: ChatServiceProtocol {
         
         try await batch.commit()
         
-        return conversationId
+        return (conversation, currentUserConversation, message)
     }
     
     func updateExistingConversation(
@@ -112,20 +133,19 @@ class ChatService: ChatServiceProtocol {
         
         let lastMessage = LastMessage(text: lastMessage, senderId: currentUserId, timestamp: timestamp)
         
-        let conversationRef = db.collection("conversations").document(conversationId)
+        let conversationRef = db.collection(conversationsCollectionName).document(conversationId)
         batch.updateData([
             "lastMessage": try Firestore.Encoder().encode(lastMessage),
             "updatedAt": timestamp
         ], forDocument: conversationRef)
         
-        // Update user-specific conversation entries
         try updateUserConversation(
             batch: batch,
             userId: currentUserId,
             otherUserId: otherUserId,
             conversationId: conversationId,
             lastMessage: lastMessage,
-            incrementUnread: false // Sender doesn't get unread count
+            incrementUnread: false
         )
         
         try updateUserConversation(
@@ -134,7 +154,7 @@ class ChatService: ChatServiceProtocol {
             otherUserId: currentUserId,
             conversationId: conversationId,
             lastMessage: lastMessage,
-            incrementUnread: true // Recipient gets unread count
+            incrementUnread: true
         )
         
         try await batch.commit()
@@ -148,7 +168,7 @@ class ChatService: ChatServiceProtocol {
         lastMessage: LastMessage,
         incrementUnread: Bool
     ) throws {
-        let userConversationRef = db.collection("userConversations")
+        let userConversationRef = db.collection(userConversationCollectionName)
             .document("\(userId)_\(conversationId)")
         
         var updateData: [String: Any] = [
@@ -220,23 +240,50 @@ class ChatService: ChatServiceProtocol {
         try await batch.commit()
     }
     
+    func markMessagesAsRead(messageIds: [String], conversationId: String, userId: String) async throws {
+        let batch = db.batch()
+        let messagesRef = db.collection(conversationsCollectionName)
+            .document(conversationId)
+            .collection(messagesCollectionName)
+        
+        // Update each message
+        for messageId in messageIds {
+            let messageRef = messagesRef.document(messageId)
+            batch.updateData([
+                "status": "read",
+                "readAt": FieldValue.serverTimestamp()
+            ], forDocument: messageRef)
+        }
+        
+        // Update conversation unread count
+        let userConversationRef = db.collection(userConversationCollectionName)
+            .document("\(userId)_\(conversationId)")
+        
+        batch.updateData([
+            "unreadCount": FieldValue.increment(Int64(-messageIds.count)),
+            "updatedAt": FieldValue.serverTimestamp()
+        ], forDocument: userConversationRef)
+        
+        try await batch.commit()
+    }
+    
     func deleteConversation(conversationId: String, for userId: String) async throws {
         let batch = db.batch()
         
-        let messagesRef = db.collection("conversations")
+        let messagesRef = db.collection(conversationsCollectionName)
             .document(conversationId)
-            .collection("messages")
+            .collection(messagesCollectionName)
         
         let messages = try await messagesRef.getDocuments()
         messages.documents.forEach { batch.deleteDocument($0.reference) }
         
-        let userConversations = try await db.collection("userConversations")
+        let userConversations = try await db.collection(userConversationCollectionName)
             .whereField("conversationId", isEqualTo: conversationId)
             .getDocuments()
         
         userConversations.documents.forEach { batch.deleteDocument($0.reference) }
         
-        let conversationRef = db.collection("conversations").document(conversationId)
+        let conversationRef = db.collection(conversationsCollectionName).document(conversationId)
         batch.deleteDocument(conversationRef)
         
         try await batch.commit()
@@ -347,7 +394,7 @@ class ChatService: ChatServiceProtocol {
         let batch = db.batch()
         if let participants = conversation.participants {
             for participantId in participants.keys where participantId != userId {
-                let userConversationRef = db.collection("userConversations")
+                let userConversationRef = db.collection(userConversationCollectionName)
                     .document("\(participantId)_\(conversationId)")
                 
                 batch.updateData([
@@ -361,13 +408,72 @@ class ChatService: ChatServiceProtocol {
         try await batch.commit()
     }
     
-    func findExistingConversation(between currentUserId: String, and otherUserId: String) async throws -> String? {
-        let query = db.collection("userConversations")
+    func findExistingConversation(between currentUserId: String, and otherUserId: String) async throws -> UserConversation? {
+        let query = db.collection(userConversationCollectionName)
             .whereField("userId", isEqualTo: currentUserId)
             .whereField("otherUserId", isEqualTo: otherUserId)
             .limit(to: 1)
         
         let snapshot = try await query.getDocuments()
-        return snapshot.documents.first?.data()["conversationId"] as? String
+        return UserConversation.fromDictionary(snapshot.documents.first?.data() ?? [:])
+    }
+    
+    
+    func trackMessageDeliveryInRealTime(
+        messageId: String,
+        conversationId: String,
+        recipientId: String
+    ) {
+        deliveryHandlers[messageId]?.remove()
+        let recipientRef = db.collection(usersCollectionName).document(recipientId)
+        deliveryHandlers[messageId] = recipientRef.addSnapshotListener { snapshot, _ in
+            guard let snapshot = snapshot,
+                  let status = snapshot.get("status") as? String,
+                  status == "online" else {
+                return
+            }
+            
+            Task {
+                try await self.updateMessageStatusToDelivered(
+                    messageId: messageId,
+                    conversationId: conversationId,
+                    recipientId: recipientId
+                )
+                self.deliveryHandlers[messageId]?.remove()
+            }
+        }
+    }
+    
+    func updateMessageStatusToDelivered(
+        messageId: String,
+        conversationId: String,
+        recipientId: String
+    ) async throws {
+        let recipientRef = db.collection(usersCollectionName).document(recipientId)
+        let recipient = try await recipientRef.getDocument(as: AuthUser.self)
+        
+        guard recipient.status == .online else {
+            return
+        }
+        
+        let messageRef = db.collection(conversationsCollectionName)
+            .document(conversationId)
+            .collection(usersCollectionName)
+            .document(messageId)
+        
+        try await messageRef.updateData([
+            "status": "delivered",
+            "deliveredAt": FieldValue.serverTimestamp()
+        ])
+        
+        let conversationRef = db.collection(conversationsCollectionName).document(conversationId)
+        try await conversationRef.updateData([
+            "lastMessage.status": "delivered"
+        ])
+    }
+    
+    func cancelDeliveryTracking(messageId: String) {
+        deliveryHandlers[messageId]?.remove()
+        deliveryHandlers[messageId] = nil
     }
 }

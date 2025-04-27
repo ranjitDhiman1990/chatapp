@@ -54,6 +54,7 @@ class ProfileViewModel: ObservableObject {
     func setup(authViewModel: AuthViewModel) {
         self.authViewModel = authViewModel
         self.initialUserData = authViewModel.getCurrentUser()
+        self.displayName = self.initialUserData?.displayName ?? ""
         populateFromAuth(phNo: self.initialUserData?.phoneNumber, mail: self.initialUserData?.email)
     }
     
@@ -69,9 +70,9 @@ class ProfileViewModel: ObservableObject {
     }
     
     var hasChanges: Bool {
-            guard let original = self.initialUserData else { return false }
+        guard let original = self.initialUserData else { return false }
         return displayName != original.displayName
-        }
+    }
     
     @MainActor
     func createProfile(imageUrl: String?) async throws {

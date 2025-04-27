@@ -33,6 +33,9 @@ struct EditProfileView: View {
             
             // Submit Button
             submitButtonView
+            
+            // Logout Button
+            logoutButtonView
         }
         .navigationTitle("Edit Profile")
         .onAppear {
@@ -88,6 +91,11 @@ struct EditProfileView: View {
                     .cancel()
                 ]
             )
+        }
+        .toolbar {
+            ToolbarItem(placement: .navigationBarLeading) {
+                NavbarBackButton()
+            }
         }
         .overlay(LoaderView(isLoading: isLoading))
     }
@@ -203,6 +211,15 @@ struct EditProfileView: View {
                 }
             }
             .disabled(!viewModel.isValidName)
+        }
+    }
+    
+    private var logoutButtonView: some View {
+        Section {
+            PrimaryButton(text: "Log Out", bgColor: .secondary) {
+                UserDefaultsManager.shared.deleteAuthUser()
+                authViewModel.signOut()
+            }
         }
     }
 }

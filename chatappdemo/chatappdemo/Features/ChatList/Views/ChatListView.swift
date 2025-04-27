@@ -12,8 +12,6 @@ struct ChatListView: View {
     @StateObject var viewModel: ChatListViewModel
     @State private var showUserSearch = false
     @State private var showUsersList = false
-    @State private var showChatView = false
-    
     @State private var selectedUser: AuthUser? = nil
     @State private var selectedConversation: UserConversation? = nil
     
@@ -22,42 +20,97 @@ struct ChatListView: View {
     }
     
     var body: some View {
-        NavigationView {
-            ZStack() {
-                Group {
-                    if viewModel.shouldShowLoading {
-                        ProgressView()
-                    } else if viewModel.shouldShowEmptyState {
-                        emptyStateView
-                    } else if viewModel.shouldShowError {
-                        if case let .error(error) = viewModel.viewState {
-                            errorView(error: error)
-                        }
-                    } else {
-                        listContent
+        ZStack(alignment: .bottomTrailing) {
+            List {
+                if viewModel.shouldShowLoading {
+                    ProgressView()
+                        .frame(maxWidth: .infinity, minHeight: 300)
+                        .padding()
+                        .listRowBackground(Color(.systemGroupedBackground))
+                } else if viewModel.shouldShowEmptyState {
+                    emptyStateView
+                        .frame(maxWidth: .infinity, minHeight: 300)
+                        .padding()
+                        .listRowBackground(Color(.systemGroupedBackground))
+                } else if viewModel.shouldShowError {
+                    if case let .error(error) = viewModel.viewState {
+                        errorView(error: error)
+                            .frame(maxWidth: .infinity, minHeight: 300)
+                            .padding()
+                            .listRowBackground(Color(.systemGroupedBackground))
+                    }
+                } else {
+                    ForEach(viewModel.filteredConversations) { conversation in
+                        ChatListRow(conversation: conversation)
+                            .onTapGesture {
+                                let user = AuthUser(
+                                    id: conversation.otherUserId ?? "",
+                                    displayName: conversation.otherUserName,
+                                    photoURL: URL(string: conversation.otherUserImageUrl ?? "")
+                                )
+                                selectedUser = user
+                                selectedConversation = conversation
+                                showUsersList = false
+                                self.router.push(.ChatView(
+                                    currentUser: viewModel.currentUser,
+                                    otherUser: user,
+                                    conversation: conversation
+                                ))
+                            }
+                            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                Button(role: .destructive) {
+                                    Task {
+                                        if let index = viewModel.filteredConversations.firstIndex(where: { $0.id == conversation.id }) {
+                                            await deleteConversation(at: index)
+                                        }
+                                    }
+                                } label: {
+                                    Label("Delete", systemImage: "trash")
+                                }
+                            }
+                            .padding(.vertical, 8)
                     }
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .ignoresSafeArea(.all)
-                
-                floatingActionButton
             }
-            .sheet(isPresented: $showUsersList) {
-                UsersListView(
-                    currentUser: viewModel.currentUser,
-                    onUserSelected: { user in
-                        selectedUser = user
-                        showUsersList = false
-                        showChatView = true
-                    }
-                )
-            }
-            
-            .navigationTitle("Messages")
-            .searchable(text: $viewModel.searchText, placement: .navigationBarDrawer(displayMode: .always))
-            .task {
+            .listStyle(.plain) // ← Removes extra default list insets
+            .background(Color(.systemGroupedBackground))
+            .refreshable {
                 await loadConversations()
             }
+            
+            // Floating Action Button
+            floatingActionButton
+        }
+        .navigationTitle("Messages")
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button {
+                    self.router.push(.EditProfileView)
+                } label: {
+                    Image(systemName: "person.crop.circle")
+                        .resizable()
+                        .frame(width: 32, height: 32)
+                        .foregroundColor(.primary)
+                }
+            }
+        }
+        .searchable(text: $viewModel.searchText, placement: .navigationBarDrawer(displayMode: .always))
+        .task {
+            await loadConversations()
+        }
+        .sheet(isPresented: $showUsersList) {
+            UsersListView(
+                currentUser: viewModel.currentUser,
+                onUserSelected: { user in
+                    showUsersList = false
+                    selectedUser = user
+                    self.router.push(.ChatView(
+                        currentUser: viewModel.currentUser,
+                        otherUser: user,
+                        conversation: nil
+                    ))
+                }
+            )
         }
     }
     
@@ -66,17 +119,6 @@ struct ChatListView: View {
             Spacer()
             HStack {
                 Spacer()
-                
-                NavigationLink(
-                    destination: ChatView(
-                        currentUser: viewModel.currentUser,
-                        otherUser: self.selectedUser,
-                        conversation: nil
-                    ),
-                    isActive: $showChatView,
-                    label: { EmptyView() }
-                )
-                .hidden()
                 
                 Button {
                     showUsersList = true
@@ -92,33 +134,6 @@ struct ChatListView: View {
                 .padding(.trailing, 16)
                 .padding(.bottom, 16)
             }
-        }
-    }
-    
-    private var listContent: some View {
-        List {
-            ForEach(viewModel.filteredConversations) { conversation in
-                NavigationLink {
-                    Text("Chat with \(conversation.otherUserName ?? "Unknown")")
-                } label: {
-                    ChatListRow(conversation: conversation)
-                }
-                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                    Button(role: .destructive) {
-                        Task {
-                            if let index = viewModel.filteredConversations.firstIndex(where: { $0.id == conversation.id }) {
-                                await deleteConversation(at: index)
-                            }
-                        }
-                    } label: {
-                        Label("Delete", systemImage: "trash")
-                    }
-                }
-            }
-        }
-        .listStyle(.plain)
-        .refreshable {
-            await loadConversations()
         }
     }
     
@@ -221,6 +236,7 @@ struct ChatListRow: View {
             }
         }
         .padding(.vertical, 8)
+        .padding(.horizontal, 16)
     }
 }
 

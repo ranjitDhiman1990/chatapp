@@ -89,4 +89,33 @@ struct LastMessage: Codable, Hashable {
     let text: String
     let senderId: String
     let timestamp: Date
+    
+    init (text: String, senderId: String, timestamp: Date) {
+        self.text = text
+        self.senderId = senderId
+        self.timestamp = timestamp
+    }
+    
+    enum CodingKeys: String, CodingKey {
+        case senderId
+        case text
+        case timestamp
+    }
+    
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        senderId = try container.decode(String.self, forKey: .senderId)
+        text = try container.decode(String.self, forKey: .text)
+        
+        // Handle Timestamp conversion
+        let firebaseTimestamp = try container.decode(Timestamp.self, forKey: .timestamp)
+        timestamp = firebaseTimestamp.dateValue()
+    }
+    
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(senderId, forKey: .senderId)
+        try container.encode(text, forKey: .text)
+        try container.encode(Timestamp(date: timestamp), forKey: .timestamp)
+    }
 }

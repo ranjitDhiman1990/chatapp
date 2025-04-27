@@ -33,7 +33,11 @@ struct MainRouteView: View {
     @ViewBuilder
     private var contentView: some View {
         if case let .authenticated(user) = authViewModel.state {
-            ChatListView(currentUser: user)
+            if router.currentScreen() == .OnboardingView {
+                ChatListView(currentUser: user)
+            } else {
+                viewForCurrentRoute()
+            }
         } else {
             viewForCurrentRoute()
         }
@@ -64,6 +68,8 @@ struct MainRouteView: View {
         case .OTPView(let phoneNumber, let verificationID):
             OTPView(phoneNumber: phoneNumber, verificationID: verificationID)
                 .environmentObject(authViewModel)
+        case .EditProfileView:
+            EditProfileView().environmentObject(authViewModel)
         case .ChatListView(let user):
             ChatListView(currentUser: user)
         case .ChatView(let currentUser, let otherUser, let conversation):

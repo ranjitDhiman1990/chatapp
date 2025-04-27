@@ -41,7 +41,15 @@ struct ChatView: View {
                 TextField("Type a message", text: $newMessage)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
                 
-                Button(action: viewModel.sendMessage) {
+                Button(action: {
+                    Task {
+                        do {
+                            try await viewModel.sendMessage(text: newMessage)
+                        } catch {
+                            debugPrint("Image upload error = \(error.localizedDescription)")
+                        }
+                    }
+                }) {
                     Image(systemName: "paperplane.fill")
                         .padding(8)
                         .background(Color.blue)
@@ -51,13 +59,16 @@ struct ChatView: View {
             }
             .padding()
         }
+        .onAppear {
+            if viewModel.conversation != nil {
+                viewModel.loadChats(lastMessageId: nil)
+            }
+        }
         .navigationTitle(viewModel.otherUser?.displayName ?? "")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItem(placement: .navigationBarTrailing) {
-                Button(action: {}) {
-                    Image(systemName: "info.circle")
-                }
+            ToolbarItem(placement: .navigationBarLeading) {
+                NavbarBackButton()
             }
         }
     }
