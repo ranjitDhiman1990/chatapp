@@ -19,10 +19,6 @@ struct AuthUser: Identifiable, Codable, Hashable {
     let lastActive: Date?
     let createdAt: Date?
     
-    enum UserStatus: String, Codable {
-        case online, offline
-    }
-    
     init(
         id: String,
         email: String? = nil,
@@ -112,4 +108,8 @@ struct AuthUser: Identifiable, Codable, Hashable {
         case lastActive
         case createdAt
     }
+}
+
+enum UserStatus: String, Codable {
+    case online, offline
 }

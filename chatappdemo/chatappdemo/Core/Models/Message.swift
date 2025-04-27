@@ -15,6 +15,7 @@ struct Message: Identifiable, Codable, Hashable {
     let type: MessageType?
     let timestamp: Date?
     let status: MessageStatus?
+    let readAt: Date?
     
     init(
         id: String?,
@@ -22,7 +23,8 @@ struct Message: Identifiable, Codable, Hashable {
         content: String?,
         type: MessageType?,
         timestamp: Date?,
-        status: MessageStatus?
+        status: MessageStatus?,
+        readAt: Date?
     ) {
         self.id = id
         self.senderId = senderId
@@ -30,6 +32,7 @@ struct Message: Identifiable, Codable, Hashable {
         self.type = type
         self.timestamp = timestamp
         self.status = status
+        self.readAt = readAt
     }
     
     func copyWith(
@@ -38,7 +41,8 @@ struct Message: Identifiable, Codable, Hashable {
         content: String? = nil,
         type: MessageType? = nil,
         timestamp: Date? = nil,
-        status: MessageStatus? = nil
+        status: MessageStatus? = nil,
+        readAt: Date? = nil
     ) -> Message {
         return Message(
             id: id ?? self.id,
@@ -46,7 +50,8 @@ struct Message: Identifiable, Codable, Hashable {
             content: content ?? self.content,
             type: type ?? self.type,
             timestamp: timestamp ?? self.timestamp,
-            status: status ?? self.status
+            status: status ?? self.status,
+            readAt: readAt
         )
     }
     
@@ -91,5 +96,6 @@ struct Message: Identifiable, Codable, Hashable {
         case type
         case timestamp
         case status
+        case readAt
     }
 }

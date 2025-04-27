@@ -16,6 +16,7 @@ struct UserConversation: Identifiable, Codable, Hashable {
     let lastMessage: LastMessage?
     let unreadCount: Int?
     let isTyping: Bool?
+    var typingUserId: String?
     let updatedAt: Date?
     
     init(
@@ -26,6 +27,7 @@ struct UserConversation: Identifiable, Codable, Hashable {
         lastMessage: LastMessage?,
         unreadCount: Int?,
         isTyping: Bool?,
+        typingUserId: String?,
         updatedAt: Date?
     ) {
         self.id = id
@@ -35,6 +37,7 @@ struct UserConversation: Identifiable, Codable, Hashable {
         self.lastMessage = lastMessage
         self.unreadCount = unreadCount
         self.isTyping = isTyping
+        self.typingUserId = typingUserId
         self.updatedAt = updatedAt
     }
     
@@ -46,6 +49,7 @@ struct UserConversation: Identifiable, Codable, Hashable {
         lastMessage: LastMessage? = nil,
         unreadCount: Int? = nil,
         isTyping: Bool? = nil,
+        typingUserId: String? = nil,
         updatedAt: Date? = nil
     ) -> UserConversation {
         return UserConversation(
@@ -56,6 +60,7 @@ struct UserConversation: Identifiable, Codable, Hashable {
             lastMessage: lastMessage ?? self.lastMessage,
             unreadCount: unreadCount ?? self.unreadCount,
             isTyping: isTyping ?? self.isTyping,
+            typingUserId: typingUserId ?? self.typingUserId,
             updatedAt: updatedAt ?? self.updatedAt
         )
     }
@@ -94,6 +99,7 @@ struct UserConversation: Identifiable, Codable, Hashable {
         case lastMessage
         case unreadCount
         case isTyping
+        case typingUserId
         case updatedAt
     }
 }

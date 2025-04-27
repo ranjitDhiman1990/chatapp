@@ -9,14 +9,14 @@ import Foundation
 import FirebaseFirestore
 
 struct Conversation: Identifiable, Codable, Hashable {
-    let id: String
+    @DocumentID var id: String?
     let participants: [String: Bool]?
     let lastMessage: LastMessage?
     let createdAt: Date?
     let updatedAt: Date?
     
     init(
-        id: String,
+        id: String?,
         participants: [String: Bool]?,
         lastMessage: LastMessage?,
         createdAt: Date?,
