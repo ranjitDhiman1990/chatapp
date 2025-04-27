@@ -35,7 +35,7 @@ class UserService: FirestoreService<AuthUser>, UserServiceProtocol {
     }
     
     func fetchAllUsers() async throws -> [AuthUser] {
-        let snapshot = try await db.collection(collectionName).getDocuments()
+        let snapshot = try await db.collection(collectionName).limit(to: 100).getDocuments()
         return try snapshot.documents.compactMap { doc in
             try doc.data(as: AuthUser.self)
         }

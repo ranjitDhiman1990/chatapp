@@ -17,6 +17,10 @@ struct Message: Identifiable, Codable, Hashable {
     let status: MessageStatus?
     let readAt: Date?
     
+    var isOwnMessage: Bool {
+        return senderId == FirebaseManager.auth.currentUser?.uid
+    }
+    
     init(
         id: String?,
         senderId: String?,

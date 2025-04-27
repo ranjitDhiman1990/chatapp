@@ -32,8 +32,8 @@ struct MainRouteView: View {
     
     @ViewBuilder
     private var contentView: some View {
-        if authViewModel.state.id == "authenticated" {
-            ChatListView().environmentObject(authViewModel)
+        if case let .authenticated(user) = authViewModel.state {
+            ChatListView(currentUser: user)
         } else {
             viewForCurrentRoute()
         }
@@ -64,8 +64,10 @@ struct MainRouteView: View {
         case .OTPView(let phoneNumber, let verificationID):
             OTPView(phoneNumber: phoneNumber, verificationID: verificationID)
                 .environmentObject(authViewModel)
-        case .ChatListView:
-            ChatListView().environmentObject(authViewModel)
+        case .ChatListView(let user):
+            ChatListView(currentUser: user)
+        case .ChatView(let currentUser, let otherUser, let conversation):
+            ChatView(currentUser: currentUser, otherUser: otherUser, conversation: conversation)
         default:
             OnboardingView()
         }
@@ -73,8 +75,8 @@ struct MainRouteView: View {
     
     private func handleAuthStateChange(_ newState: AuthState) {
         switch newState {
-        case .authenticated:
-            router.reset(to: .ChatListView)
+        case .authenticated(let user):
+            router.reset(to: .ChatListView(authUser: user))
         case .incompleteProfile:
             router.reset(to: .CompleteProfileView)
         case .unauthenticated:

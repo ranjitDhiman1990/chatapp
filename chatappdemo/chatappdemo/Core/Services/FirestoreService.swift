@@ -25,7 +25,7 @@ class FirestoreService<T: Codable & Identifiable>: FirestoreServiceProtocol {
     
     let db = Firestore.firestore()
     let collectionName: String
-    let limit: Int? = 1
+    let limit: Int? = 100
     
     init(collectionName: String) {
         self.collectionName = collectionName

@@ -8,10 +8,10 @@
 import SwiftUI
 
 struct UsersListView: View {
-    @EnvironmentObject var router: Router
-    
     @StateObject private var viewModel = UsersListViewModel()
-    let currentUserId: String
+    let currentUser: AuthUser
+    var onUserSelected: (AuthUser) -> Void
+    @State private var isLoading: Bool = false
     
     var body: some View {
         VStack {
@@ -19,7 +19,7 @@ struct UsersListView: View {
                 .padding()
             
             List(viewModel.filteredUsers) { user in
-                if user.id != currentUserId {
+                if user.id != currentUser.id {
                     Button {
                         startNewConversation(with: user)
                     } label: {
@@ -31,17 +31,24 @@ struct UsersListView: View {
         }
         .navigationTitle("New Message")
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .navigationBarLeading) {
-                Button("Cancel") {
-                    
+        .onAppear {
+            isLoading = true
+            Task {
+                defer {
+                    isLoading = false
+                }
+                do {
+                    try await viewModel.loadUsers()
+                } catch {
+                    debugPrint("Load Users error = \(error.localizedDescription)")
                 }
             }
         }
+        .overlay(LoaderView(isLoading: isLoading))
     }
     
     private func startNewConversation(with user: AuthUser) {
-        // Handle conversation creation (implementation below)
+        onUserSelected(user)
     }
 }
 
@@ -82,10 +89,6 @@ struct UserRow: View {
             VStack(alignment: .leading) {
                 Text(user.displayName ?? "")
                     .font(.headline)
-                
-                //                Text(user.status.rawValue.capitalized)
-                //                    .font(.subheadline)
-                //                    .foregroundColor(user.status == .online ? .green : .gray)
             }
         }
         .padding(.vertical, 8)

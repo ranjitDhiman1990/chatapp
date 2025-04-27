@@ -9,8 +9,8 @@ import FirebaseFirestore
 
 protocol ChatServiceProtocol {
     func createNewConversation(
-        between currentUsewrId: String,
-        and otherUserId: String,
+        between currentUser: AuthUser,
+        and otherUser: AuthUser,
         initialMessage: String
     ) async throws -> String
     
@@ -65,19 +65,19 @@ class ChatService: ChatServiceProtocol {
     let conversationsCollectionName = "conversations"
     let messagesCollectionName = "messages"
     
-    func createNewConversation(between currentUserId: String, and otherUserId: String, initialMessage: String) async throws -> String {
+    func createNewConversation(between currentUser: AuthUser, and otherUser: AuthUser, initialMessage: String) async throws -> String {
         let conversationId = UUID().uuidString
         let timeStamp = Date()
         
-        let lastMessage = LastMessage(text: initialMessage, senderId: currentUserId, timestamp: timeStamp)
+        let lastMessage = LastMessage(text: initialMessage, senderId: currentUser.id, timestamp: timeStamp)
         
-        let conversation = Conversation(id: conversationId, participants: [currentUserId: true, otherUserId: true], lastMessage: lastMessage, createdAt: timeStamp, updatedAt: timeStamp)
+        let conversation = Conversation(id: conversationId, participants: [currentUser.id: true, otherUser.id: true], lastMessage: lastMessage, createdAt: timeStamp, updatedAt: timeStamp)
         
-        let currentUserConversation = UserConversation(id: nil, userId: currentUserId, conversationId: conversationId, otherUserId: otherUserId, lastMessage: lastMessage, unreadCount: 0, isTyping: false, typingUserId: nil, updatedAt: timeStamp)
+        let currentUserConversation = UserConversation(id: nil, userId: currentUser.id, userName: currentUser.displayName, userImageUrl: currentUser.photoURL?.absoluteString, conversationId: conversationId, otherUserId: otherUser.id, otherUserName: otherUser.displayName, otherUserImageUrl: otherUser.photoURL?.absoluteString, lastMessage: lastMessage, unreadCount: 0, isTyping: false, typingUserId: nil, updatedAt: timeStamp)
         
-        let otherUserConversation = UserConversation(id: nil, userId: otherUserId, conversationId: conversationId, otherUserId: currentUserId, lastMessage: lastMessage, unreadCount: 1, isTyping: false, typingUserId: nil, updatedAt: timeStamp)
+        let otherUserConversation = UserConversation(id: nil, userId: otherUser.id, userName: otherUser.displayName, userImageUrl: otherUser.photoURL?.absoluteString, conversationId: conversationId, otherUserId: currentUser.id, otherUserName: currentUser.displayName, otherUserImageUrl: currentUser.photoURL?.absoluteString, lastMessage: lastMessage, unreadCount: 1, isTyping: false, typingUserId: nil, updatedAt: timeStamp)
         
-        let message = Message(id: nil, senderId: currentUserId, content: initialMessage, type: Message.MessageType.text, timestamp: timeStamp, status: Message.MessageStatus.delivered, readAt: nil)
+        let message = Message(id: nil, senderId: currentUser.id, content: initialMessage, type: Message.MessageType.text, timestamp: timeStamp, status: Message.MessageStatus.delivered, readAt: nil)
         
         let batch = db.batch()
         
@@ -86,10 +86,10 @@ class ChatService: ChatServiceProtocol {
         batch.setData(conversation.toDictionary() ?? [:], forDocument: conversationRef)
         
         // User-specific entries
-        let currentUserRef = db.collection(userConversationCollectionName).document("\(currentUserId)_\(conversationId)")
+        let currentUserRef = db.collection(userConversationCollectionName).document("\(currentUser.id)_\(conversationId)")
         batch.setData(currentUserConversation.toDictionary() ?? [:], forDocument: currentUserRef)
         
-        let otherUserRef = db.collection(userConversationCollectionName).document("\(otherUserId)_\(conversationId)")
+        let otherUserRef = db.collection(userConversationCollectionName).document("\(otherUser.id)_\(conversationId)")
         batch.setData(otherUserConversation.toDictionary() ?? [:], forDocument: otherUserRef)
         
         // First message

@@ -23,6 +23,7 @@ class UsersListViewModel: ObservableObject {
         }
     }
     
+    @MainActor
     func loadUsers() async throws {
         isLoading = true
         do {

@@ -11,8 +11,15 @@ import FirebaseFirestore
 struct UserConversation: Identifiable, Codable, Hashable {
     @DocumentID var id: String?
     let userId: String?
+    let userName: String?
+    let userImageUrl: String?
+    
     let conversationId: String?
+    
     let otherUserId: String?
+    let otherUserName: String?
+    let otherUserImageUrl: String?
+    
     let lastMessage: LastMessage?
     let unreadCount: Int?
     let isTyping: Bool?
@@ -22,8 +29,12 @@ struct UserConversation: Identifiable, Codable, Hashable {
     init(
         id: String?,
         userId: String?,
+        userName: String?,
+        userImageUrl: String?,
         conversationId: String?,
         otherUserId: String?,
+        otherUserName: String?,
+        otherUserImageUrl: String?,
         lastMessage: LastMessage?,
         unreadCount: Int?,
         isTyping: Bool?,
@@ -32,8 +43,12 @@ struct UserConversation: Identifiable, Codable, Hashable {
     ) {
         self.id = id
         self.userId = userId
+        self.userName = userName
+        self.userImageUrl = userImageUrl
         self.conversationId = conversationId
         self.otherUserId = otherUserId
+        self.otherUserName = otherUserName
+        self.otherUserImageUrl = otherUserImageUrl
         self.lastMessage = lastMessage
         self.unreadCount = unreadCount
         self.isTyping = isTyping
@@ -44,8 +59,12 @@ struct UserConversation: Identifiable, Codable, Hashable {
     func copyWith(
         id: String? = nil,
         userId: String? = nil,
+        userName: String? = nil,
+        userImageUrl: String? = nil,
         conversationId: String? = nil,
         otherUserId: String? = nil,
+        otherUserName: String? = nil,
+        otherUserImageUrl: String? = nil,
         lastMessage: LastMessage? = nil,
         unreadCount: Int? = nil,
         isTyping: Bool? = nil,
@@ -55,8 +74,12 @@ struct UserConversation: Identifiable, Codable, Hashable {
         return UserConversation(
             id: id ?? self.id ?? "",
             userId: userId ?? self.userId ?? "",
+            userName: userName ?? self.userName ?? "",
+            userImageUrl: userImageUrl ?? self.userImageUrl ?? "",
             conversationId: conversationId ?? self.conversationId ?? "",
             otherUserId: otherUserId ?? self.otherUserId ?? "",
+            otherUserName: otherUserName ?? self.otherUserName ?? "",
+            otherUserImageUrl: otherUserImageUrl ?? self.otherUserImageUrl ?? "",
             lastMessage: lastMessage ?? self.lastMessage,
             unreadCount: unreadCount ?? self.unreadCount,
             isTyping: isTyping ?? self.isTyping,
@@ -94,8 +117,12 @@ struct UserConversation: Identifiable, Codable, Hashable {
     enum CodingKeys: String, CodingKey {
         case id
         case userId
+        case userName
+        case userImageUrl
         case conversationId
         case otherUserId
+        case otherUserName
+        case otherUserImageUrl
         case lastMessage
         case unreadCount
         case isTyping
