@@ -76,11 +76,28 @@ class ChatViewModel: ObservableObject {
                     let existingIds = Set(messages.map { $0.id })
                     let filteredMessages = newMessages.filter { !existingIds.contains($0.id) }
                     messages.insert(contentsOf: filteredMessages, at: 0)
+                    //sortMessagesInDecendingOrder()
+                    
+                    
+                    await markConversationRead()
+                    let ids = filteredMessages.compactMap { $0.id }
+                    await markMessagesAsRead(ids)
                 }
             } catch {
                 debugPrint("Error loading messages: \(error)")
                 self.error = error
             }
+        }
+    }
+    
+    private func sortMessagesInDecendingOrder() {
+        messages.sort { msg1, msg2 in
+            if let msg1Timestamp = msg1.timestamp,
+               let msg2Timestamp = msg2.timestamp
+            {
+                return msg1Timestamp < msg2Timestamp
+            }
+            return msg1.timestamp == msg2.timestamp
         }
     }
     
@@ -97,6 +114,7 @@ class ChatViewModel: ObservableObject {
                 
                 await MainActor.run {
                     messages.append(message)
+                    sortMessagesInDecendingOrder()
                 }
                 
                 self.chatListService.trackMessageDeliveryInRealTime(
@@ -115,6 +133,7 @@ class ChatViewModel: ObservableObject {
                 
                 await MainActor.run {
                     messages.append(message)
+                    sortMessagesInDecendingOrder()
                 }
                 
                 self.chatListService.trackMessageDeliveryInRealTime(
@@ -142,6 +161,7 @@ class ChatViewModel: ObservableObject {
             let message = result.2
             await MainActor.run {
                 messages.append(message)
+                sortMessagesInDecendingOrder()
             }
         } catch {
             debugPrint("sendMessage error: \(error)")

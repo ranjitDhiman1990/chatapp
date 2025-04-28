@@ -40,7 +40,9 @@ struct EditProfileView: View {
         .navigationTitle("Edit Profile")
         .onAppear {
             viewModel.setup(authViewModel: authViewModel)
-            imageUploadViewModel.imageUrl = viewModel.initialUserData?.photoURL?.absoluteString
+            if let imgUrl = viewModel.initialUserData?.photoURL?.absoluteString {
+                self.imageUploadViewModel.updateImageUrl(imgUrl: imgUrl)
+            }
         }
         .sheet(isPresented: $showImagePicker) {
             ImagePickerView(image: $viewModel.profileImage, onImageSelected: { image in

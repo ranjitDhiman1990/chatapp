@@ -18,6 +18,10 @@ class ImageUploadViewModel: ObservableObject {
         self.uploadService = uploadService
     }
     
+    func updateImageUrl(imgUrl: String) {
+        self.imageUrl = imgUrl
+    }
+    
     func uploadImage(_ image: UIImage) async throws {
         do {
             let url = try await uploadService.uploadImage(image: image) { progress in

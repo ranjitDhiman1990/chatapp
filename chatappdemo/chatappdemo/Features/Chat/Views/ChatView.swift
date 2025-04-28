@@ -45,6 +45,7 @@ struct ChatView: View {
                     Task {
                         do {
                             try await viewModel.sendMessage(text: newMessage)
+                            newMessage = ""
                         } catch {
                             debugPrint("Image upload error = \(error.localizedDescription)")
                         }
@@ -85,7 +86,7 @@ struct MessageView: View {
     let message: Message
     
     var body: some View {
-        VStack(alignment: message.isOwnMessage ? .leading : .trailing, spacing: 4) {
+        VStack(alignment: message.isOwnMessage ? .trailing : .leading, spacing: 4) {
             Text(message.content ?? "")
                 .padding()
                 .background(message.isOwnMessage ? Color(.systemGray5) : Color.blue)
@@ -96,7 +97,7 @@ struct MessageView: View {
                 .font(.caption2)
                 .foregroundColor(.gray)
         }
-        .frame(maxWidth: .infinity, alignment: message.isOwnMessage ? .leading : .trailing)
+        .frame(maxWidth: .infinity, alignment: message.isOwnMessage ? .trailing : .leading)
         .padding(.horizontal, 8)
     }
 }

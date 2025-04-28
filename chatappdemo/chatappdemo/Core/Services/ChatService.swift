@@ -346,7 +346,7 @@ class ChatService: ChatServiceProtocol {
         var query = db.collection(conversationsCollectionName)
             .document(conversationId)
             .collection(messagesCollectionName)
-            .order(by: "timestamp", descending: true)
+            .order(by: "timestamp", descending: false)
             .limit(to: limit)
         
         if let lastMessageId = lastMessageId {
