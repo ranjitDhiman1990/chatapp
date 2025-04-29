@@ -55,7 +55,8 @@ protocol ChatServiceProtocol {
     func setTypingIndicator(
         for userId: String,
         conversationId: String,
-        isTyping: Bool
+        isTyping: Bool,
+        appState: AppState
     ) async throws
     
     func findExistingConversation(
@@ -85,6 +86,10 @@ class ChatService: ChatServiceProtocol {
     let usersCollectionName = "Users"
     
     private var deliveryHandlers: [String: ListenerRegistration] = [:]
+    
+    // For Typing Indicator
+    private var typingStateTasks: [String: Task<Void, Never>] = [:]
+    private let backgroundTaskIdentifier = "com.app.chatappdemo.typingIndicatorUpdate"
     
     func createNewConversation(between currentUser: AuthUser, and otherUser: AuthUser, initialMessage: String) async throws -> (Conversation, UserConversation, Message) {
         let conversationId = UUID().uuidString
@@ -387,7 +392,37 @@ class ChatService: ChatServiceProtocol {
         }
     }
     
-    func setTypingIndicator(for userId: String, conversationId: String, isTyping: Bool) async throws {
+    func setTypingIndicator(for userId: String, conversationId: String, isTyping: Bool, appState: AppState) async throws {
+        typingStateTasks[conversationId]?.cancel()
+        
+        // Handle different app states
+        switch appState {
+        case .active, .inactive:
+            try await updateTypingStateDirectly(
+                userId: userId,
+                conversationId: conversationId,
+                isTyping: isTyping
+            )
+            
+        case .background:
+            try await handleBackgroundStateUpdate(
+                userId: userId,
+                conversationId: conversationId
+            )
+            
+        case .terminated:
+            try await handleBackgroundStateUpdate(
+                userId: userId,
+                conversationId: conversationId
+            )
+        }
+    }
+    
+    private func updateTypingStateDirectly(
+        userId: String,
+        conversationId: String,
+        isTyping: Bool
+    ) async throws {
         let conversationRef = db.collection(conversationsCollectionName).document(conversationId)
         let conversation = try await conversationRef.getDocument(as: Conversation.self)
         
@@ -407,6 +442,54 @@ class ChatService: ChatServiceProtocol {
         
         try await batch.commit()
     }
+    
+    private func handleBackgroundStateUpdate(
+        userId: String,
+        conversationId: String
+    ) async throws {
+        // Register background task
+        let backgroundTask = await UIApplication.shared.beginBackgroundTask(
+            withName: backgroundTaskIdentifier
+        ) {
+            // Cleanup if task expires
+            self.typingStateTasks[conversationId]?.cancel()
+        }
+        
+        // Create a task to handle the update
+        typingStateTasks[conversationId] = Task {
+            do {
+                try await updateTypingStateDirectly(
+                    userId: userId,
+                    conversationId: conversationId,
+                    isTyping: false
+                )
+            } catch {
+                print("Failed to update typing state in background: \(error)")
+            }
+            
+            await UIApplication.shared.endBackgroundTask(backgroundTask)
+        }
+    }
+    
+    //        private func handleTerminatedStateUpdate(
+    //            userId: String,
+    //            conversationId: String
+    //        ) async throws {
+    //            // Use silent push notification to update state
+    //            try await sendTerminationUpdateNotification(
+    //                userId: userId,
+    //                conversationId: conversationId
+    //            )
+    //        }
+    //
+    //        private func sendTerminationUpdateNotification(
+    //            userId: String,
+    //            conversationId: String
+    //        ) async throws {
+    //            // Implementation depends on your notification service
+    //            // This would trigger a cloud function to update the state
+    //
+    //        }
     
     func findExistingConversation(between currentUserId: String, and otherUserId: String) async throws -> UserConversation? {
         let query = db.collection(userConversationCollectionName)

@@ -9,10 +9,15 @@ import SwiftUI
 
 struct NavbarBackButton: View {
     @EnvironmentObject var router: Router
+    var action: (@MainActor () -> Void)?
 
     var body: some View {
         Button(action: {
-            _ = router.pop()
+            if action != nil {
+                action!()
+            } else {
+                _ = router.pop()
+            }
         }) {
             HStack(spacing: 4) {
                 Image(systemName: "chevron.left")

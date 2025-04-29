@@ -11,10 +11,20 @@ import FirebaseFirestore
 
 class ChatViewModel: ObservableObject {
     @Published var messages: [Message] = []
-    @Published var isTyping: Bool = false
     @Published var error: Error? = nil
     
+    @Published var newMessage = "" {
+        didSet {
+            handleTextEditingChange()
+        }
+    }
+    private let typingDebounceInterval: TimeInterval = 2.0
     private var typingTimer: Timer?
+    private var appStateObserver: NSObjectProtocol?
+    
+    @Published var otherUserTyping: Bool = false
+    @Published var typingUserName: String = ""
+    private var typingListener: ListenerRegistration?
     
     var conversation: UserConversation?
     let currentUser: AuthUser
@@ -35,7 +45,6 @@ class ChatViewModel: ObservableObject {
     private let chatListService: ChatServiceProtocol
     private let userService: UserServiceProtocol
     
-    private var listener: ListenerRegistration?
     
     init(
         chatListService: ChatServiceProtocol = ChatService(),
@@ -50,14 +59,22 @@ class ChatViewModel: ObservableObject {
         self.otherUser = otherUser
         if conversation != nil {
             self.conversation = conversation
+            if let conversationId = self.conversation?.conversationId, !conversationId.isEmpty {
+                self.listenForTypingIndicator(conversationId: conversationId, currentUserId: self.currentUser.id)
+            }
         } else {
             Task {
                 self.conversation = try await self.chatListService.findExistingConversation(between: self.currentUser.id, and: self.otherUser?.id ?? "")
                 if self.conversation != nil {
                     await loadChats(lastMessageId: nil)
+                    if let conversationId = self.conversation?.conversationId, !conversationId.isEmpty {
+                        self.listenForTypingIndicator(conversationId: conversationId, currentUserId: self.currentUser.id)
+                    }
                 }
             }
         }
+        
+        setupAppStateObserver()
     }
     
     @MainActor
@@ -162,6 +179,10 @@ class ChatViewModel: ObservableObject {
             await MainActor.run {
                 messages.append(message)
                 sortMessagesInDecendingOrder()
+                
+                if let conversationId = self.conversation?.conversationId, !conversationId.isEmpty {
+                    self.listenForTypingIndicator(conversationId: conversationId, currentUserId: self.currentUser.id)
+                }
             }
         } catch {
             debugPrint("sendMessage error: \(error)")
@@ -169,24 +190,69 @@ class ChatViewModel: ObservableObject {
         }
     }
     
+    func handleTextEditingChange() {
+        // Cancel previous timer
+        typingTimer?.invalidate()
+        
+        // Only send typing true if there's actual text
+        if !newMessage.isEmpty, let conversationId = self.conversation?.conversationId {
+            Task { [weak self] in
+                guard let _self = self else { return }
+                await _self.setTypingIndicator(isTyping: true, userId: _self.currentUser.id, conversationId: conversationId)
+            }
+            
+        }
+        
+        // Set up new timer to send false after pause
+        typingTimer = Timer.scheduledTimer(
+            withTimeInterval: typingDebounceInterval,
+            repeats: false
+        ) { [weak self] _ in
+            Task { [weak self] in
+                if let strongSelf = self,
+                   let conversationId = strongSelf.conversation?.conversationId {
+                    await strongSelf.setTypingIndicator(
+                        isTyping: false,
+                        userId: strongSelf.currentUser.id,
+                        conversationId: conversationId
+                    )
+                }
+            }
+        }
+    }
+    
     @MainActor
     func setTypingIndicator(
         isTyping: Bool,
         userId: String,
-        conversationId: String
+        conversationId: String,
+        appState: AppState = .active
     ) {
-        typingTimer?.invalidate()
-        
-        typingTimer = Timer.scheduledTimer(
-            withTimeInterval: 0.5,
-            repeats: false
+        Task {
+            try await self.chatListService.setTypingIndicator(
+                for: userId,
+                conversationId: conversationId,
+                isTyping: isTyping,
+                appState: appState
+            )
+        }
+    }
+    
+    private func setupAppStateObserver() {
+        appStateObserver = NotificationCenter.default.addObserver(
+            forName: UIApplication.willResignActiveNotification,
+            object: nil,
+            queue: .main
         ) { [weak self] _ in
-            Task {
-                try await self?.chatListService.setTypingIndicator(
-                    for: userId,
-                    conversationId: conversationId,
-                    isTyping: isTyping
-                )
+            Task { [weak self] in
+                if let strongSelf = self,
+                   let conversationId = strongSelf.conversation?.conversationId {
+                    await strongSelf.setTypingIndicator(
+                        isTyping: false,
+                        userId: strongSelf.currentUser.id,
+                        conversationId: conversationId
+                    )
+                }
             }
         }
     }
@@ -246,17 +312,26 @@ class ChatViewModel: ObservableObject {
         }
     }
     
-    func listenForTypingIndicators(conversationId: String, currentUserId: String) {
-        let ref = Firestore.firestore().collection("userConversations")
+    func listenForTypingIndicator(conversationId: String, currentUserId: String) {
+        // Remove previous listener if exists
+        typingListener?.remove()
+        
+        let db = Firestore.firestore()
+        let docRef = db.collection("userConversations")
             .document("\(currentUserId)_\(conversationId)")
         
-        ref.addSnapshotListener { [weak self] snapshot, _ in
-            guard let data = snapshot?.data() else { return }
+        typingListener = docRef.addSnapshotListener { [weak self] snapshot, _ in
+            guard let data = snapshot?.data(),
+                  let isTyping = data["isTyping"] as? Bool,
+                  let typingUserId = data["otherUserId"] as? String,
+                  typingUserId != currentUserId else {
+                self?.otherUserTyping = false
+                return
+            }
             
-            DispatchQueue.main.async {
-                let isTyping = data["isTyping"] as? Bool ?? false
-                let userId = data["typingUserId"] as? String
-                self?.isTyping = isTyping == true && userId == self?.otherUser?.id
+            self?.otherUserTyping = isTyping
+            if let name = data["otherUserName"] as? String {
+                self?.typingUserName = name
             }
         }
     }
@@ -264,12 +339,16 @@ class ChatViewModel: ObservableObject {
     deinit {
         error = nil
         messages.removeAll()
-        self.isTyping = false
         messageStream = nil
-        listener?.remove()
-        listener = nil
+        listenerTask?.cancel()
+        listenerTask = nil
+        typingListener?.remove()
+        typingListener = nil
         typingTimer?.invalidate()
         typingTimer = nil
+        if let observer = appStateObserver {
+            NotificationCenter.default.removeObserver(observer)
+        }
     }
 }
 
