@@ -12,6 +12,8 @@ struct ChatView: View {
     @Environment(\.scenePhase) var scenePhase
     
     @StateObject private var viewModel: ChatViewModel
+    @State private var scrollViewContentSize: CGSize = .zero
+    @State private var hasAppeared = false
     
     init (currentUser: AuthUser, otherUser: AuthUser?, conversation: UserConversation?) {
         _viewModel = StateObject(wrappedValue: ChatViewModel(currentUser: currentUser, otherUser: otherUser, conversation: conversation))
@@ -19,21 +21,61 @@ struct ChatView: View {
     
     var body: some View {
         VStack {
-            // Messages list
-            ScrollView {
-                ScrollViewReader { proxy in
-                    LazyVStack(spacing: 8) {
-                        ForEach(viewModel.messages) { message in
-                            MessageView(message: message)
-                                .id(message.id)
+            ScrollViewReader { proxy in
+                ScrollView {
+                    ZStack(alignment: .top) {
+                        // Track content size for pagination
+                        GeometryReader { geometry in
+                            Color.clear
+                                .preference(
+                                    key: ViewSizeKey.self,
+                                    value: geometry.size
+                                )
                         }
+                        
+                        LazyVStack(spacing: 8) {
+                            // Loading indicator at top
+                            if viewModel.isLoadingPrevious {
+                                ProgressView()
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical)
+                            }
+                            
+                            // Messages list
+                            ForEach(viewModel.messages) { message in
+                                MessageView(message: message)
+                                    .id(message.id)
+                                    .onAppear {
+                                        if message.id == viewModel.messages.last?.id && !hasAppeared {
+                                            proxy.scrollTo(message.id, anchor: .bottom)
+                                        }
+                                        checkIfShouldLoadMore(message: message)
+                                    }
+                            }
+                            
+                            // Bottom spacer for scroll to bottom
+                            Color.clear
+                                .frame(height: 1)
+                                .id("bottom")
+                        }
+                        .padding()
                     }
-                    .padding()
-                    .onAppear {
+                    .onPreferenceChange(ViewSizeKey.self) { size in
+                        scrollViewContentSize = size
+                    }
+                }
+                .onAppear {
+                    scrollToBottom(proxy: proxy)
+                }
+                .onChange(of: viewModel.messages) { _ in
+                    if !viewModel.isLoadingPrevious {
                         scrollToBottom(proxy: proxy)
                     }
-                    .onChange(of: viewModel.messages) { _ in
-                        scrollToBottom(proxy: proxy)
+                    guard let lastId = viewModel.messages.last?.id else { return }
+                    DispatchQueue.main.async {
+                        withAnimation {
+                            proxy.scrollTo(lastId, anchor: .bottom)
+                        }
                     }
                 }
             }
@@ -50,6 +92,7 @@ struct ChatView: View {
         .onAppear {
             if viewModel.conversation != nil {
                 viewModel.loadChats(lastMessageId: nil)
+                hasAppeared = true
             }
         }
         .navigationTitle(viewModel.otherUser?.displayName ?? "")
@@ -85,11 +128,33 @@ struct ChatView: View {
         }
     }
     
+    private func checkIfShouldLoadMore(message: Message) {
+        // Load more when we're 3 messages away from the top
+        guard let index = viewModel.messages.firstIndex(where: { $0.id == message.id }),
+              index <= 2,
+              !viewModel.isLoadingPrevious,
+              viewModel.canLoadMore else {
+            return
+        }
+        
+        Task {
+            viewModel.loadChats(lastMessageId: viewModel.messages.first?.id)
+        }
+    }
     
     private func scrollToBottom(proxy: ScrollViewProxy) {
-        if let lastMessage = viewModel.messages.last {
-            proxy.scrollTo(lastMessage.id, anchor: .bottom)
+        guard !viewModel.messages.isEmpty else { return }
+        withAnimation {
+            proxy.scrollTo("bottom", anchor: .bottom)
         }
+    }
+}
+
+// Helper for tracking scroll view content size
+struct ViewSizeKey: PreferenceKey {
+    static var defaultValue: CGSize = .zero
+    static func reduce(value: inout CGSize, nextValue: () -> CGSize) {
+        value = nextValue()
     }
 }
 

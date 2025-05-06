@@ -12,6 +12,11 @@ import FirebaseFirestore
 class ChatViewModel: ObservableObject {
     @Published var messages: [Message] = []
     @Published var error: Error? = nil
+    @Published var isLoadingPrevious = false
+    @Published var canLoadMore = true
+        
+    private var lastDocumentSnapshot: DocumentSnapshot?
+    private let pageSize = 25
     
     @Published var newMessage = "" {
         didSet {
@@ -83,25 +88,33 @@ class ChatViewModel: ObservableObject {
             do {
                 messageStream = try await self.chatListService.fetchMessages(
                     for: self.conversation?.conversationId ?? "",
-                    limit: 25,
+                    limit: pageSize,
                     lastMessageId: lastMessageId
                 )
                 
                 guard let messageStream = messageStream else { return }
                 
+                guard !isLoadingPrevious, canLoadMore else { return }
+                
+                isLoadingPrevious = true
+                
                 for try await newMessages in messageStream {
                     let existingIds = Set(messages.map { $0.id })
                     let filteredMessages = newMessages.filter { !existingIds.contains($0.id) }
                     messages.insert(contentsOf: filteredMessages, at: 0)
-                    //sortMessagesInDecendingOrder()
+                    sortMessagesInDecendingOrder()
                     
                     
                     await markConversationRead()
                     let ids = filteredMessages.compactMap { $0.id }
                     await markMessagesAsRead(ids)
+                    
+                    canLoadMore = newMessages.count == pageSize
+                    isLoadingPrevious = false
                 }
             } catch {
                 debugPrint("Error loading messages: \(error)")
+                isLoadingPrevious = false
                 self.error = error
             }
         }
