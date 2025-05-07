@@ -7,14 +7,21 @@
 
 import Foundation
 
-class UserDefaultsManager {
+protocol UserDefaultsManagerProtocol {
+    func saveAuthUser(_ user: AuthUser) throws
+    func getAuthUser() -> AuthUser?
+    func deleteAuthUser()
+    var isUserLoggedIn: Bool { get }
+}
+
+public enum Keys: String {
+    case authUser
+    case isLoggedIn
+}
+
+class UserDefaultsManager: UserDefaultsManagerProtocol {
     static let shared = UserDefaultsManager()
     private let userDefaults = UserDefaults.standard
-    
-    private enum Keys: String {
-        case authUser
-        case isLoggedIn
-    }
     
     // MARK: - AuthUser Management
 
