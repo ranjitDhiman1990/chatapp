@@ -43,4 +43,16 @@ final class OTPViewModel: BaseViewModel {
     deinit {
         timer?.invalidate()
     }
+    
+    func validateForm() -> Bool {
+        let otpCode = otp.map { String($0 ?? "") }.joined()
+        if otpCode.isEmpty {
+            showAlertFor(title: "Validation Error", message: "Enter OTP, which has been sent to you mobile number.")
+            return false
+        } else if otpCode.count != 6 {
+            showAlertFor(title: "Validation Error", message: "Enter a valid OTP. OTP should be 6 digits long.")
+            return false
+        }
+        return true
+    }
 }

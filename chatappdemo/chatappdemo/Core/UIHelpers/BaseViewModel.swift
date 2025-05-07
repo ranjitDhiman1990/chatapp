@@ -35,11 +35,15 @@ open class BaseViewModel: ObservableObject {
     }
 
     /// Use this method to show error toast and it will show toast with title **Error** and message.
-    public func showToastForError() {
-        if !networkMonitor.isConnected {
-            showToastFor(toast: .init(type: .error, title: "Error", message: "No internet connection!"))
+    public func showToastForError(errorMessage: String? = nil) {
+        if let errorMessage = errorMessage {
+            showToastFor(toast: .init(type: .error, title: "Error", message: errorMessage))
         } else {
-            showToastFor(toast: .init(type: .error, title: "Error", message: "Something went wrong."))
+            if !networkMonitor.isConnected {
+                showToastFor(toast: .init(type: .error, title: "Error", message: "No internet connection!"))
+            } else {
+                showToastFor(toast: .init(type: .error, title: "Error", message: "Something went wrong."))
+            }
         }
     }
 

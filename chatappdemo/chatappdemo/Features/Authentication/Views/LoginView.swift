@@ -48,6 +48,7 @@ struct LoginView: View {
                                     try await viewModel.signInWithApple()
                                 } catch {
                                     debugPrint("Apple login error = \(error.localizedDescription)")
+                                    viewModel.showToastForError(errorMessage: error.localizedDescription)
                                 }
                             }
                         }) {
@@ -74,6 +75,7 @@ struct LoginView: View {
                                     try await viewModel.signInWithGoogle()
                                 } catch {
                                     debugPrint("Google login error = \(error.localizedDescription)")
+                                    viewModel.showToastForError(errorMessage: error.localizedDescription)
                                 }
                             }
                         }) {

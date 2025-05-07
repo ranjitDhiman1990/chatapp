@@ -38,4 +38,15 @@ final class PhoneLoginViewModel: BaseViewModel {
         let digitsOnly = CharacterSet.decimalDigits.isSuperset(of: CharacterSet(charactersIn: trimmed))
         return digitsOnly && trimmed.count == 10
     }
+    
+    func validateForm() -> Bool {
+        if phoneNumber.isEmpty {
+            showAlertFor(title: "Validation Error", message: "Enter a phone number")
+            return false
+        } else if !isPhoneNumberValid {
+            showAlertFor(title: "Validation Error", message: "Enter a valid phone number")
+            return false
+        }
+        return true
+    }
 }

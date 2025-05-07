@@ -8,7 +8,7 @@
 import SwiftUI
 import PhotosUI
 
-class ProfileViewModel: ObservableObject {
+class ProfileViewModel: BaseViewModel {
     var authViewModel: AuthViewModel?
     
     @Published var displayName: String = "" {

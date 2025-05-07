@@ -50,6 +50,7 @@ struct CompleteProfileView: View {
                         }
                     } catch {
                         debugPrint("Image upload error = \(error.localizedDescription)")
+                        viewModel.showToastForError(errorMessage: error.localizedDescription)
                     }
                 }
             })
@@ -67,6 +68,7 @@ struct CompleteProfileView: View {
                         }
                     } catch {
                         debugPrint("Image upload error = \(error.localizedDescription)")
+                        viewModel.showToastForError(errorMessage: error.localizedDescription)
                     }
                 }
             })
@@ -86,6 +88,7 @@ struct CompleteProfileView: View {
             )
         }
         .overlay(LoaderView(isLoading: isLoading))
+        .toastView(toast: $viewModel.toast)
     }
     
     private var profileImageView: some View {
@@ -177,6 +180,7 @@ struct CompleteProfileView: View {
                         try await viewModel.createProfile(imageUrl: imageUploadViewModel.imageUrl)
                     } catch {
                         debugPrint("Complete Profile error = \(error.localizedDescription)")
+                        viewModel.showToastForError(errorMessage: error.localizedDescription)
                     }
                 }
             }

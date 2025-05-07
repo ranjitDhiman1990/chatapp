@@ -24,16 +24,19 @@ public struct PhoneLoginView: View {
                                       selectedCountry: $viewModel.currentCountry, isPhoneNumberValid: $viewModel.isPhoneNumberValid, showLoader: viewModel.showLoader)
                 
                 PrimaryButton(text: "Send OTP") {
-                    isLoading = true
-                    Task {
-                        defer {
-                            isLoading = false
-                        }
-                        
-                        do {
-                            try await authViewModel.verifyPhoneNumber(phoneNumber: "\(viewModel.currentCountry.dialCode)\(viewModel.phoneNumber)")
-                        } catch {
-                            debugPrint("verifyPhoneNumber error = \(error.localizedDescription)")
+                    if viewModel.validateForm() {
+                        isLoading = true
+                        Task {
+                            defer {
+                                isLoading = false
+                            }
+                            
+                            do {
+                                try await authViewModel.verifyPhoneNumber(phoneNumber: "\(viewModel.currentCountry.dialCode)\(viewModel.phoneNumber)")
+                            } catch {
+                                debugPrint("verifyPhoneNumber error = \(error.localizedDescription)")
+                                viewModel.showToastForError(errorMessage: error.localizedDescription)
+                            }
                         }
                     }
                 }
@@ -41,6 +44,7 @@ public struct PhoneLoginView: View {
             .padding(.top, -50)
             .padding(.horizontal, 16)
             .alertView.alert(isPresented: $viewModel.showAlert, alertStruct: viewModel.alert)
+            .toastView(toast: $viewModel.toast)
         }
         .overlay(LoaderView(isLoading: isLoading))
         .toolbar {

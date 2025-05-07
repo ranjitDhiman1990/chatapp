@@ -55,9 +55,11 @@ struct EditProfileView: View {
                     do {
                         if let image {
                             try await imageUploadViewModel.uploadImage(image)
+                            viewModel.showToastFor(toast: ToastView(type: .success, title: "Success", message: "Your proifile image updated succeessfully"))
                         }
                     } catch {
                         debugPrint("Image upload error = \(error.localizedDescription)")
+                        viewModel.showToastForError(errorMessage: error.localizedDescription)
                     }
                 }
             })
@@ -73,9 +75,11 @@ struct EditProfileView: View {
                     do {
                         if let image {
                             try await imageUploadViewModel.uploadImage(image)
+                            viewModel.showToastFor(toast: ToastView(type: .success, title: "Success", message: "Your proifile image updated succeessfully"))
                         }
                     } catch {
                         debugPrint("Image upload error = \(error.localizedDescription)")
+                        viewModel.showToastForError(errorMessage: error.localizedDescription)
                     }
                 }
             })
@@ -100,6 +104,7 @@ struct EditProfileView: View {
             }
         }
         .overlay(LoaderView(isLoading: isLoading))
+        .toastView(toast: $viewModel.toast)
     }
     
     private var profileImageView: some View {
@@ -207,8 +212,10 @@ struct EditProfileView: View {
                     
                     do {
                         try await viewModel.updateProfile(imageUrl: imageUploadViewModel.imageUrl)
+                        viewModel.showToastFor(toast: ToastView(type: .success, title: "Success", message: "Your proifile updated succeessfully"))
                     } catch {
                         debugPrint("Update Profile error = \(error.localizedDescription)")
+                        viewModel.showToastForError(errorMessage: error.localizedDescription)
                     }
                 }
             }
