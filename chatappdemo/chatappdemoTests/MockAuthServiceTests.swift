@@ -167,27 +167,28 @@ final class MockAuthServiceTests: XCTestCase {
     
     // MARK: - Apple Credential Handling Tests
     
-//    func testHandleAuthorizationSuccess() async {
-//        let expectedUser = AuthUser(id: "apple-credential-user",
-//                                    email: "credential@test.com",
-//                                    displayName: "Test User")
-//        mockAuthService.setSuccess()
-//        mockAuthService.mockAuthUser = expectedUser
-//        
-//        let credential = MockAppleIDCredential(
-//            user: "appleUserID",
-//            email: "credential@test.com",
-//            fullName: PersonNameComponents(givenName: "Test", familyName: "User")
-//        )
-//        
-//        // When/Then remains the same
-//        do {
-//            let user = try await mockAuthService.handleAuthorization(credential: credential)
-//            XCTAssertEqual(user.id, expectedUser.id)
-//        } catch {
-//            XCTFail("Unexpected error: \(error)")
-//        }
-//    }
+    func testHandleAuthorizationSuccess() async {
+        let expectedUser = AuthUser(id: "apple-credential-user",
+                                    email: "credential@test.com",
+                                    displayName: "Test User")
+        mockAuthService.setSuccess()
+        mockAuthService.mockAuthUser = expectedUser
+        
+        let credential = MockAppleCredential(
+            user: "apple-credential-user",
+            email: "credential@test.com",
+            fullName: PersonNameComponents(givenName: "Test", familyName: "User"),
+            identityToken: nil
+        )
+        
+        // When/Then remains the same
+        do {
+            let user = try await mockAuthService.handleAuthorization(credential: credential)
+            XCTAssertEqual(user.id, expectedUser.id)
+        } catch {
+            XCTFail("Unexpected error: \(error)")
+        }
+    }
     
     func testMockConfiguration() {
         // Test that mock configuration works properly

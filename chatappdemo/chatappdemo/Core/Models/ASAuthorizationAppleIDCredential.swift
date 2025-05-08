@@ -11,6 +11,7 @@ import AuthenticationServices
 protocol AppleIDCredentialProtocol {
     var user: String { get }
     var email: String? { get }
+    var identityToken: Data? { get }
     var fullName: PersonNameComponents? { get }
 }
 

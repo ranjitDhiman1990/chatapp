@@ -62,7 +62,7 @@ class MockAuthService: AuthServiceProtocol {
         }
     }
     
-    func handleAuthorization(credential: ASAuthorizationAppleIDCredential) async throws -> AuthUser {
+    func handleAuthorization(credential: AppleIDCredentialProtocol) async throws -> AuthUser {
         if success {
             return mockAuthUser
         } else {
@@ -111,16 +111,16 @@ extension MockAuthService {
     }
 }
 
-protocol AppleIDCredentialProtocol {
-    var user: String { get }
-    var email: String? { get }
-    var fullName: PersonNameComponents? { get }
-}
-
-extension ASAuthorizationAppleIDCredential: AppleIDCredentialProtocol {}
-
-struct MockAppleIDCredential: AppleIDCredentialProtocol {
+struct MockAppleCredential: AppleIDCredentialProtocol {
     let user: String
     let email: String?
     let fullName: PersonNameComponents?
+    let identityToken: Data?
+    
+    init(user: String, email: String?, fullName: PersonNameComponents?, identityToken: Data?) {
+        self.user = user
+        self.email = email
+        self.fullName = fullName
+        self.identityToken = identityToken
+    }
 }

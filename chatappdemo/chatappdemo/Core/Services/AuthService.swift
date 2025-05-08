@@ -17,7 +17,7 @@ protocol AuthServiceProtocol {
     func signInWithGoogle() async throws -> AuthUser
     
     func signInWithApple() async throws -> AuthUser
-    func handleAuthorization(credential: ASAuthorizationAppleIDCredential) async throws -> AuthUser
+    func handleAuthorization(credential: AppleIDCredentialProtocol) async throws -> AuthUser
     
     func signOut() throws
     func currentUser() -> AuthUser?
@@ -105,7 +105,7 @@ public class AuthService: NSObject, AuthServiceProtocol {
         }
     }
     
-    func handleAuthorization(credential: ASAuthorizationAppleIDCredential) async throws -> AuthUser {
+    func handleAuthorization(credential: AppleIDCredentialProtocol) async throws -> AuthUser {
         guard let nonce = currentNonce else {
             throw AuthError.invalidNonce
         }
